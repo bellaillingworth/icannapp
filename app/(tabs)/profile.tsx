@@ -5,6 +5,8 @@ import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { checklists } from './explore';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/config/firebase';
 
 type GradeLevel = '9th' | '10th' | '11th' | '12th';
 type UserRole = 'Student' | 'Parent' | 'Guardian' | 'School Counselor' | 'College Access Professional' | 'Educator' | 'Trio/GEARUP/Upward Bound';
@@ -148,10 +150,33 @@ export default function ProfileScreen() {
 
   const handleLogout = async () => {
     try {
+      console.log('Starting logout process...');
+      console.log('Auth object:', auth);
+      console.log('Current user:', auth.currentUser);
+      
+      if (!auth.currentUser) {
+        console.log('No user currently signed in');
+        // If no user is signed in, just clear AsyncStorage and redirect
+        await AsyncStorage.removeItem('userData');
+        router.replace('/signin');
+        return;
+      }
+      
+      await signOut(auth);
+      console.log('Successfully signed out from Firebase');
       await AsyncStorage.removeItem('userData');
-      router.replace('/signup');
+      console.log('Cleared AsyncStorage');
+      router.replace('/signin');
     } catch (error) {
-      Alert.alert('Error', 'Failed to logout');
+      console.error('Logout error details:', error);
+      if (typeof error === 'object' && error !== null && 'code' in error) {
+        console.error('Error code:', (error as any).code);
+        console.error('Error message:', (error as any).message);
+        Alert.alert('Error', `Failed to logout: ${(error as any).message}`);
+      } else {
+        console.error('Unknown error type:', error);
+        Alert.alert('Error', 'Failed to logout');
+      }
     }
   };
 

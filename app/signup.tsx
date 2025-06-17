@@ -1,6 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { signUp } from '@/utils/auth';
+import { db } from '@/config/firebase';
+import { collection, doc, setDoc } from 'firebase/firestore';
+
 import { Alert, Image, Pressable, ScrollView, StyleSheet, TextInput } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -19,30 +23,33 @@ export default function SignUpScreen() {
     }
 
     try {
-      // Store only basic user data without preferences
-      const userData = {
+      // Create user in Firebase Auth
+      const userCredential = await signUp(email, password);
+      const user = userCredential.user;
+
+      // Store first and last name in Firestore under users collection
+      await setDoc(doc(db, 'users', user.uid), {
         firstName,
         lastName,
         email,
-        password, // In a real app, this should be hashed
-        // Explicitly set these to undefined to ensure they're not set
-        grade: undefined,
-        role: undefined,
-        schoolName: undefined,
-        graduationYear: undefined,
-        preferences: {
-          icanTipOfWeek: false,
-          gradeLevelAlerts: false,
-          counselorEmails: false,
-          collegeAccessProfessionals: false
-        }
-      };
-      await AsyncStorage.setItem('userData', JSON.stringify(userData));
-      
+        createdAt: new Date().toISOString(),
+      });
+
       // Navigate to preferences page
       router.replace('/preferences');
     } catch (error) {
-      Alert.alert('Error', 'Failed to create account');
+      let message = 'Failed to create account';
+      if (typeof error === 'object' && error !== null && 'code' in error) {
+        const code = (error as any).code;
+        if (code === 'auth/email-already-in-use') {
+          message = 'Email is already in use';
+        } else if (code === 'auth/invalid-email') {
+          message = 'Invalid email address';
+        } else if (code === 'auth/weak-password') {
+          message = 'Password is too weak';
+        }
+      }
+      Alert.alert('Error', message);
     }
   };
 

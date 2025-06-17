@@ -5,6 +5,7 @@ import { Alert, Image, Pressable, ScrollView, StyleSheet, TextInput } from 'reac
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { signIn } from '@/utils/auth';
 
 export default function SignInScreen() {
   const [email, setEmail] = useState('');
@@ -17,26 +18,25 @@ export default function SignInScreen() {
     }
 
     try {
-      // Get user data
-      const userDataString = await AsyncStorage.getItem('userData');
-      if (!userDataString) {
-        Alert.alert('Error', 'No account found with this email');
-        return;
-      }
+      // Use Firebase Auth
+      await signIn(email, password);
 
-      const userData = JSON.parse(userDataString);
-      
-      // In a real app, you would verify the password here
-      // For now, we'll just check if the email matches
-      if (userData.email !== email) {
-        Alert.alert('Error', 'Invalid email or password');
-        return;
-      }
-
-      // Navigate to the main app
+      // Optionally, you can fetch user data from Firestore here if needed
+      // For now, just navigate to the main app
       router.replace('/(tabs)/explore');
     } catch (error) {
-      Alert.alert('Error', 'Failed to sign in');
+      let message = 'Failed to sign in';
+      if (typeof error === 'object' && error !== null && 'code' in error) {
+        const code = (error as any).code;
+        if (code === 'auth/user-not-found') {
+          message = 'No account found with this email';
+        } else if (code === 'auth/wrong-password') {
+          message = 'Invalid email or password';
+        } else if (code === 'auth/invalid-email') {
+          message = 'Invalid email address';
+        }
+      }
+      Alert.alert('Error', message);
     }
   };
 

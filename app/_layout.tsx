@@ -3,8 +3,9 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
+import { onAuthStateChanged, getAuth, User } from 'firebase/auth';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import '../config/firebase'; // Initialize Firebase
@@ -14,41 +15,35 @@ export default function RootLayout() {
   const segments = useSegments();
   const router = useRouter();
 
+  const [authChecked, setAuthChecked] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
   useEffect(() => {
-    const checkUserData = async () => {
-      try {
-        const userData = await AsyncStorage.getItem('userData');
-        const inAuthGroup = segments[0] === '(tabs)';
-        const isPublicPage = ['career-planning', 'college-planning', 'financial-aid'].includes(segments[0]);
-        const isPreferencesPage = segments[0] === 'preferences';
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      setAuthChecked(true);
+    });
+    return () => unsubscribe();
+  }, []);
 
-        if (!userData && inAuthGroup && !isPublicPage) {
-          // Redirect to signup if no user data and trying to access protected routes
-          router.replace('/signup');
-        } else if (userData && !inAuthGroup && !isPublicPage && !isPreferencesPage) {
-          // Parse user data to check if preferences are set
-          const parsedUserData = JSON.parse(userData);
-          const hasPreferences = parsedUserData.grade && parsedUserData.role;
+  useEffect(() => {
+    if (!authChecked) return;
+    const inAuthGroup = segments[0] === '(tabs)';
+    const isPublicPage = ['career-planning', 'college-planning', 'financial-aid'].includes(segments[0]);
+    const isPreferencesPage = segments[0] === 'preferences';
 
-          if (hasPreferences) {
-            // Only redirect to explore if preferences are set
-            router.replace('/(tabs)/explore');
-          } else {
-            // Redirect to preferences if they're not set
-            router.replace('/preferences');
-          }
-        }
-      } catch (error) {
-        console.error('Error checking user data:', error);
-      }
-    };
-
-    checkUserData();
-  }, [segments]);
+    if (!user && inAuthGroup && !isPublicPage) {
+      router.replace('/signin');
+    } else if (user && !inAuthGroup && !isPublicPage && !isPreferencesPage) {
+      // You can add logic here to check for preferences in Firestore if needed
+      router.replace('/(tabs)/explore');
+    }
+  }, [segments, user, authChecked]);
 
   if (!loaded) {
     // Async font loading only occurs in development.
