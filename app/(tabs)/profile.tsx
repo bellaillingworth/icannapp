@@ -1,10 +1,10 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { checklists } from './explore';
+import { supabase } from '../../supabaseClient';
 
 type GradeLevel = '9th' | '10th' | '11th' | '12th';
 type UserRole = 'Student' | 'Parent/Guardian';
@@ -93,62 +93,81 @@ export default function ProfileScreen() {
     role: 'Student',
   });
   const [originalGrade, setOriginalGrade] = useState<GradeLevel>('9th');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadUserData();
-  }, []);
-
-  const loadUserData = async () => {
-    try {
-      const userDataString = await AsyncStorage.getItem('userData');
-      if (userDataString) {
-        const data = JSON.parse(userDataString);
-        setUserData({
-          firstName: data.firstName || '',
-          lastName: data.lastName || '',
-          email: data.email || '',
-          grade: data.grade || '9th',
-          role: data.role || 'Student',
-          collegePlan: data.collegePlan
-        });
-        setOriginalGrade(data.grade || '9th');
+    const fetchProfile = async () => {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.replace('/signup');
+        return;
       }
-    } catch (error) {
-      console.error('Error loading user data:', error);
-      Alert.alert('Error', 'Failed to load user data');
-    }
-  };
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      if (error || !data) {
+        Alert.alert('Error', 'Failed to load profile');
+        setLoading(false);
+        return;
+      }
+      setUserData({
+        firstName: data.first_name || '',
+        lastName: data.last_name || '',
+        email: data.email || '',
+        grade: data.grade || '9th',
+        role: data.role || 'Student',
+        collegePlan: data.college_plan || 'Not decided',
+      });
+      setOriginalGrade(data.grade || '9th');
+      setLoading(false);
+    };
+    fetchProfile();
+  }, []);
 
   const handleSave = async () => {
     try {
-      // Update user data
-      const updatedUserData = {
-        ...userData,
-        // Keep other fields from existing user data
-        ...JSON.parse(await AsyncStorage.getItem('userData') || '{}')
-      };
-      await AsyncStorage.setItem('userData', JSON.stringify(updatedUserData));
-      
-      // If grade changed, reset checklist progress for the new grade
-      if (userData.grade !== originalGrade) {
-        // Remove old grade's progress
-        await AsyncStorage.removeItem(`checklist_progress_${originalGrade}`);
-        // Initialize new grade's progress with default tasks
-        const newGradeTasks = checklists[userData.grade];
-        await AsyncStorage.setItem(`checklist_progress_${userData.grade}`, JSON.stringify(newGradeTasks));
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        Alert.alert('Error', 'User not found');
+        setLoading(false);
+        return;
       }
-      
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          first_name: userData.firstName,
+          last_name: userData.lastName,
+          email: userData.email,
+          grade: userData.grade,
+          role: userData.role,
+          college_plan: userData.collegePlan,
+        });
+      if (error) {
+        Alert.alert('Error', error.message);
+        setLoading(false);
+        return;
+      }
       setIsEditing(false);
       setOriginalGrade(userData.grade);
+      setLoading(false);
     } catch (error) {
-      console.error('Error saving profile:', error);
       Alert.alert('Error', 'Failed to save profile changes');
+      setLoading(false);
     }
   };
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem('userData');
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        Alert.alert('Error', error.message);
+        return;
+      }
       router.replace('/signup');
     } catch (error) {
       Alert.alert('Error', 'Failed to logout');
@@ -232,7 +251,7 @@ export default function ProfileScreen() {
                   style={styles.cancelButton}
                   onPress={() => {
                     setIsEditing(false);
-                    loadUserData(); // Reload original data
+                    // Reload original data
                   }}
                 >
                   <ThemedText style={styles.buttonText}>Cancel</ThemedText>

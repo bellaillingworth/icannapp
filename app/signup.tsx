@@ -1,7 +1,7 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, TextInput } from 'react-native';
+import { supabase } from '../supabaseClient';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -19,27 +19,42 @@ export default function SignUpScreen() {
     }
 
     try {
-      // Store only basic user data without preferences
-      const userData = {
-        firstName,
-        lastName,
+      const { data, error } = await supabase.auth.signUp({
         email,
-        password, // In a real app, this should be hashed
-        // Explicitly set these to undefined to ensure they're not set
-        grade: undefined,
-        role: undefined,
-        schoolName: undefined,
-        graduationYear: undefined,
-        preferences: {
-          icanTipOfWeek: false,
-          gradeLevelAlerts: false,
-          counselorEmails: false,
-          collegeAccessProfessionals: false
+        password,
+        options: {
+          data: {
+            firstName,
+            lastName
+          }
         }
-      };
-      await AsyncStorage.setItem('userData', JSON.stringify(userData));
-      
-      // Navigate to preferences page
+      });
+      if (error) {
+        Alert.alert('Error', error.message);
+        return;
+      }
+      // Wait for user to confirm email and be logged in
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        Alert.alert('Error', 'Please confirm your email and sign in.');
+        return;
+      }
+      // Insert profile row
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          first_name: firstName,
+          last_name: lastName,
+          email,
+          grade: null,
+          role: null,
+          college_plan: null
+        });
+      if (profileError) {
+        Alert.alert('Error', 'Failed to create user profile: ' + profileError.message);
+        return;
+      }
       router.replace('/preferences');
     } catch (error) {
       Alert.alert('Error', 'Failed to create account');

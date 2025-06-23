@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../supabaseClient';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
@@ -7,7 +7,6 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
-import '../config/firebase'; // Initialize Firebase
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -21,29 +20,21 @@ export default function RootLayout() {
   useEffect(() => {
     const checkUserData = async () => {
       try {
-        const userData = await AsyncStorage.getItem('userData');
+        const { data: { session } } = await supabase.auth.getSession();
         const inAuthGroup = segments[0] === '(tabs)';
         const isPublicPage = ['career-planning', 'college-planning', 'financial-aid'].includes(segments[0]);
         const isPreferencesPage = segments[0] === 'preferences';
 
-        if (!userData && inAuthGroup && !isPublicPage) {
-          // Redirect to signup if no user data and trying to access protected routes
+        if (!session && inAuthGroup && !isPublicPage) {
+          // Redirect to signup if not logged in and trying to access protected routes
           router.replace('/signup');
-        } else if (userData && !inAuthGroup && !isPublicPage && !isPreferencesPage) {
-          // Parse user data to check if preferences are set
-          const parsedUserData = JSON.parse(userData);
-          const hasPreferences = parsedUserData.grade && parsedUserData.role;
-
-          if (hasPreferences) {
-            // Only redirect to explore if preferences are set
-            router.replace('/(tabs)/explore');
-          } else {
-            // Redirect to preferences if they're not set
-            router.replace('/preferences');
-          }
+        } else if (session && !inAuthGroup && !isPublicPage && !isPreferencesPage) {
+          // You can fetch user metadata here if needed
+          // For now, just redirect to explore
+          router.replace('/(tabs)/explore');
         }
       } catch (error) {
-        console.error('Error checking user data:', error);
+        console.error('Error checking user session:', error);
       }
     };
 

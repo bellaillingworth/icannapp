@@ -1,11 +1,11 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, Pressable, StyleSheet, View, Linking } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
+import { supabase } from '../../supabaseClient';
 
 export type GradeLevel = '9th' | '10th' | '11th' | '12th';
 
@@ -357,6 +357,7 @@ export default function ChecklistScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const confettiRef = useRef<ConfettiCannon>(null);
   const [completedMonths, setCompletedMonths] = useState<Set<string>>(new Set());
+  const [progressId, setProgressId] = useState<string | null>(null);
 
   // Get ordered months in school year order (August through July)
   const getOrderedMonths = () => {
@@ -364,77 +365,99 @@ export default function ChecklistScreen() {
             'January', 'February', 'March', 'April', 'May', 'June', 'July'];
   };
 
-  // Load saved progress
-  const loadSavedProgress = async (grade: GradeLevel) => {
-    try {
-      setIsLoading(true);
-      const savedProgress = await AsyncStorage.getItem(`checklist_progress_${grade}`);
-      if (savedProgress) {
-        const parsedProgress = JSON.parse(savedProgress) as { [key: string]: Task[] };
-        // Ensure all months have data
-        const months = getOrderedMonths();
-        const validatedProgress = months.reduce((acc, month) => {
-          acc[month] = parsedProgress[month] || [];
-          return acc;
-        }, {} as { [key: string]: Task[] });
-        
-        setTasksByMonth(validatedProgress);
-        
-        // Calculate completed count from saved progress
-        const allTasks = Object.values(validatedProgress).flat();
-        setCompletedCount(allTasks.filter(task => task.done).length);
-      } else {
-        // If no saved progress, initialize with default tasks
-        const defaultTasks = checklists[grade] || checklists['9th']; // Fallback to 9th grade if grade not found
-        setTasksByMonth(defaultTasks);
-        setCompletedCount(0);
-      }
-    } catch (error) {
-      console.error('Error loading saved progress:', error);
-      // Fallback to default tasks if there's an error
-      const defaultTasks = checklists[grade] || checklists['9th'];
-      setTasksByMonth(defaultTasks);
-      setCompletedCount(0);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Save progress
-  const saveProgress = async (grade: GradeLevel, tasks: { [key: string]: Task[] }) => {
-    try {
-      await AsyncStorage.setItem(`checklist_progress_${grade}`, JSON.stringify(tasks));
-    } catch (error) {
-      console.error('Error saving progress:', error);
-    }
-  };
-
   useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        const userDataString = await AsyncStorage.getItem('userData');
-        if (userDataString) {
-          const userData = JSON.parse(userDataString);
-          setCurrentGrade(userData.grade);
-          setUserName(userData.name);
-          // Load saved progress for the user's grade
-          await loadSavedProgress(userData.grade);
-        } else {
-          router.replace('/signup');
-        }
-      } catch (error) {
-        console.error('Error loading user data:', error);
+    const fetchChecklistProgress = async () => {
+      setIsLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('user', user);
+      if (!user) {
         router.replace('/signup');
+        return;
       }
+      // Fetch user profile for grade and name
+      let { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      console.log('profile', profile, 'profileError', profileError);
+      if (profileError && profileError.code === 'PGRST116') {
+        // No profile row, try to create one from user metadata
+        const meta = user.user_metadata || {};
+        const { error: insertProfileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            first_name: meta.firstName || '',
+            last_name: meta.lastName || '',
+            email: user.email,
+            grade: meta.grade || null,
+            role: meta.role || null,
+            college_plan: meta.collegePlan || null
+          });
+        console.log('insertProfileError', insertProfileError);
+        // Try fetching again
+        ({ data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single());
+        console.log('profile after insert', profile, 'profileError', profileError);
+      }
+      if (profileError || !profile) {
+        setIsLoading(false);
+        router.replace('/signup');
+        return;
+      }
+      setCurrentGrade(profile.grade || '9th');
+      setUserName(profile.first_name || '');
+      // Fetch checklist progress
+      const { data, error } = await supabase
+        .from('checklist_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('grade', profile.grade)
+        .single();
+      console.log('progress data', data, 'progress error', error);
+      if (data && data.progress) {
+        const progress = data.progress as { [key: string]: Task[] };
+        setTasksByMonth(progress);
+        setProgressId(data.id);
+        setCompletedCount(Object.values(progress).flat().filter((task: Task) => task.done).length);
+      } else {
+        // Insert default progress
+        const defaultTasks = checklists[profile.grade as GradeLevel] || checklists['9th'];
+        const { data: insertData, error: insertError } = await supabase
+          .from('checklist_progress')
+          .insert({
+            user_id: user.id,
+            grade: profile.grade,
+            progress: defaultTasks
+          })
+          .select()
+          .single();
+        console.log('insertData', insertData, 'insertError', insertError);
+        if (insertData) {
+          setTasksByMonth(defaultTasks);
+          setProgressId(insertData.id);
+          setCompletedCount(0);
+        }
+      }
+      setIsLoading(false);
     };
-
-    loadUserData();
+    fetchChecklistProgress();
   }, []);
 
-  useEffect(() => {
-    // Load saved progress when grade changes
-    loadSavedProgress(currentGrade);
-  }, [currentGrade]);
+  const saveProgress = async (updatedTasksByMonth: { [key: string]: Task[] }) => {
+    if (!progressId) return;
+    const { error } = await supabase
+      .from('checklist_progress')
+      .update({ progress: updatedTasksByMonth })
+      .eq('id', progressId);
+    if (error) {
+      Alert.alert('Error', 'Failed to save progress');
+    }
+  };
 
   // Add function to check if all tasks in a month are completed
   const checkMonthCompletion = (month: string, tasks: Task[]) => {
@@ -455,7 +478,6 @@ export default function ChecklistScreen() {
     }
   };
 
-  // Modify the toggleTask function to check completion
   const toggleTask = async (month: string, taskIndex: number) => {
     try {
       const updatedTasks = [...tasksByMonth[month]];
@@ -463,19 +485,13 @@ export default function ChecklistScreen() {
         ...updatedTasks[taskIndex],
         done: !updatedTasks[taskIndex].done,
       };
-
       const updatedTasksByMonth = {
         ...tasksByMonth,
         [month]: updatedTasks,
       };
-
       setTasksByMonth(updatedTasksByMonth);
-      await AsyncStorage.setItem(
-        `checklist_progress_${currentGrade}`,
-        JSON.stringify(updatedTasksByMonth)
-      );
-
-      // Check if all tasks in the month are completed
+      setCompletedCount(Object.values(updatedTasksByMonth).flat().filter((task: Task) => task.done).length);
+      await saveProgress(updatedTasksByMonth);
       checkMonthCompletion(month, updatedTasks);
     } catch (error) {
       console.error('Error toggling task:', error);

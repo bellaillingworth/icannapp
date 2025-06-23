@@ -1,7 +1,7 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, TextInput } from 'react-native';
+import { supabase } from '../supabaseClient';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -17,22 +17,14 @@ export default function SignInScreen() {
     }
 
     try {
-      // Get user data
-      const userDataString = await AsyncStorage.getItem('userData');
-      if (!userDataString) {
-        Alert.alert('Error', 'No account found with this email');
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      if (error) {
+        Alert.alert('Error', error.message);
         return;
       }
-
-      const userData = JSON.parse(userDataString);
-      
-      // In a real app, you would verify the password here
-      // For now, we'll just check if the email matches
-      if (userData.email !== email) {
-        Alert.alert('Error', 'Invalid email or password');
-        return;
-      }
-
       // Navigate to the main app
       router.replace('/(tabs)/explore');
     } catch (error) {

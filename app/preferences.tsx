@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
@@ -97,33 +96,6 @@ export default function PreferencesScreen() {
         return;
       }
 
-      // Get existing user data
-      const userDataString = await AsyncStorage.getItem('userData');
-      if (!userDataString) {
-        Alert.alert('Error', 'User data not found');
-        router.replace('/signup');
-        return;
-      }
-
-      const userData = JSON.parse(userDataString);
-      
-      // Update user data with preferences
-      const updatedUserData = {
-        ...userData,
-        grade: selectedGrade,
-        role: selectedRole,
-        schoolName,
-        graduationYear,
-        collegePlan,
-      };
-
-      // Save updated user data
-      await AsyncStorage.setItem('userData', JSON.stringify(updatedUserData));
-
-      // Initialize checklist data for the selected grade
-      const initialChecklistData = checklists[selectedGrade];
-      await AsyncStorage.setItem(`checklist_progress_${selectedGrade}`, JSON.stringify(initialChecklistData));
-      
       // Navigate to explore page
       router.replace('/(tabs)/explore');
     } catch (error) {
