@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Image, Pressable, StyleSheet, View, Linking } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
 
 export type GradeLevel = '9th' | '10th' | '11th' | '12th';
@@ -298,6 +298,57 @@ export const checklists: ChecklistData = {
   },
 };
 
+const ICAN_WEBSITE = 'https://www.icansucceed.org/';
+
+// Map keywords to specific ICAN URLs
+const ICAN_LINKS: { [keyword: string]: string } = {
+  'FAFSA': 'https://www.icansucceed.org/financial-aid/fafsa',
+  'financial aid': 'https://www.icansucceed.org/financial-aid',
+  'scholarship': 'https://www.icansucceed.org/financial-aid/scholarships-and-grants',
+  'career planning': 'https://www.icansucceed.org/career-planning',
+  'college planning': 'https://www.icansucceed.org/college-planning',
+  'ICAN Tip': 'https://www.icansucceed.org/about-ican/services',
+  'ICAN advisor': 'https://www.icansucceed.org/about-ican/services',
+  'ICAN Center': 'https://www.icansucceed.org/about-ican/locations',
+  'ICAN Future Ready Fair': 'https://www.icansucceed.org/about-ican/services',
+  'ICAN Senior Alerts': 'https://www.icansucceed.org/school-counselors/senior-alerts-counselor-toolkit',
+  'college checklist': 'https://www.icansucceed.org/college-planning',
+  'career assessment': 'https://www.icansucceed.org/career-planning/career-planning-resources',
+  'financial aid seminar': 'https://www.icansucceed.org/financial-aid',
+  'college fair': 'https://www.icansucceed.org/college-planning/explore-colleges/college-fairs',
+  'campus visit': 'https://www.icansucceed.org/college-planning/explore-colleges/campus-visits',
+  'budget': 'https://www.icansucceed.org/financial-aid/money-management',
+  'loan': 'https://www.icansucceed.org/financial-aid/student-loans',
+  'apprenticeship': 'https://www.icansucceed.org/career-planning/career-training-apprenticeship-programs',
+  'job shadow': 'https://www.icansucceed.org/career-planning/job-shadows-internships',
+  'internship': 'https://www.icansucceed.org/career-planning/job-shadows-internships',
+  'college savings': 'https://www.icansucceed.org/financial-aid/saving-for-college',
+  'financial offer': 'https://www.icansucceed.org/financial-aid/financial-aid-offers',
+  'student loan': 'https://www.icansucceed.org/financial-aid/student-loans',
+  'aid package': 'https://www.icansucceed.org/financial-aid/financial-aid-offers',
+  'ICAN appointment': 'https://www.icansucceed.org/about-ican/services',
+  'ICAN Packing List': 'https://www.icansucceed.org/college-planning/campus-life',
+  'ICAN E-Alerts': 'https://www.icansucceed.org/about-ican/services',
+  'ICAN Scholarship Database': 'https://www.icansucceed.org/financial-aid/scholarships-and-grants',
+  'ICAN Curriculum': 'https://www.icansucceed.org/school-counselors/career-and-college-readiness-curriculum',
+  'ICAN Webinar': 'https://www.icansucceed.org/about-ican/services',
+  'ICAN Professional Development': 'https://www.icansucceed.org/school-counselors/professional-development',
+  'ICAN Resource': 'https://www.icansucceed.org/about-ican/services',
+  'ICAN Materials': 'https://www.icansucceed.org/about-ican/services',
+  'ICAN Team': 'https://www.icansucceed.org/about-ican/meet-the-ican-team',
+  'ICAN Events': 'https://www.icansucceed.org/about-ican/services',
+  'ICAN Planning': 'https://www.icansucceed.org/about-ican/services',
+};
+
+function getICANLink(text: string): string | null {
+  for (const keyword in ICAN_LINKS) {
+    if (text.toLowerCase().includes(keyword.toLowerCase())) {
+      return ICAN_LINKS[keyword];
+    }
+  }
+  return null;
+}
+
 export default function ChecklistScreen() {
   const [currentGrade, setCurrentGrade] = useState<GradeLevel>('9th');
   const [userName, setUserName] = useState<string>('');
@@ -493,30 +544,43 @@ export default function ChecklistScreen() {
               <ThemedText type="defaultSemiBold" style={styles.monthTitle}>
                 {month}
               </ThemedText>
-              {(tasksByMonth[month] || []).map((task, index) => (
-                <Pressable
-                  key={task.id}
-                  onPress={() => toggleTask(month, index)}
-                  style={[
-                    styles.taskContainer,
-                    task.done && styles.taskDone,
-                  ]}
-                >
-                  <View style={styles.checkboxContainer}>
-                    <Ionicons
-                      name={task.done ? 'checkbox' : 'square-outline'}
-                      size={24}
-                      color={task.done ? '#4caf50' : '#aaa'}
-                    />
-                  </View>
-                  <ThemedText
-                    style={[styles.taskText, task.done && styles.textDone]}
-                    numberOfLines={0}
+              {(tasksByMonth[month] || []).map((task, index) => {
+                const icanLink = getICANLink(task.text);
+                return (
+                  <Pressable
+                    key={task.id}
+                    onPress={() => toggleTask(month, index)}
+                    style={[
+                      styles.taskContainer,
+                      task.done && styles.taskDone,
+                    ]}
                   >
-                    {task.text}
-                  </ThemedText>
-                </Pressable>
-              ))}
+                    <View style={styles.checkboxContainer}>
+                      <Ionicons
+                        name={task.done ? 'checkbox' : 'square-outline'}
+                        size={24}
+                        color={task.done ? '#4caf50' : '#aaa'}
+                      />
+                    </View>
+                    {icanLink ? (
+                      <ThemedText
+                        style={[styles.taskText, styles.linkText, task.done && styles.textDone]}
+                        numberOfLines={0}
+                        onPress={() => Linking.openURL(icanLink)}
+                      >
+                        {task.text} (Learn more)
+                      </ThemedText>
+                    ) : (
+                      <ThemedText
+                        style={[styles.taskText, task.done && styles.textDone]}
+                        numberOfLines={0}
+                      >
+                        {task.text}
+                      </ThemedText>
+                    )}
+                  </Pressable>
+                );
+              })}
             </ThemedView>
           )}
         />
@@ -624,5 +688,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  linkText: {
+    color: '#0a7ea4',
+    textDecorationLine: 'underline',
   },
 });

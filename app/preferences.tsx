@@ -8,8 +8,9 @@ import { ThemedView } from '@/components/ThemedView';
 import { checklists } from './(tabs)/explore';
 
 type GradeLevel = '9th' | '10th' | '11th' | '12th';
-type UserRole = 'Student' | 'Parent' | 'Guardian' | 'School Counselor' | 'College Access Professional' | 'Educator' | 'Trio/GEARUP/Upward Bound';
+type UserRole = 'Student' | 'Parent/Guardian';
 type GraduationYear = '2026' | '2027' | '2028' | '2029' | 'N/A';
+type CollegePlan = '2-year college' | '4-year college' | 'Not decided' | 'Apprenticeship';
 
 type UserPreferences = {
   icanTipOfWeek: boolean;
@@ -86,12 +87,7 @@ export default function PreferencesScreen() {
   const [selectedRole, setSelectedRole] = useState<UserRole>('Student');
   const [schoolName, setSchoolName] = useState('');
   const [graduationYear, setGraduationYear] = useState<GraduationYear>('2026');
-  const [preferences, setPreferences] = useState<UserPreferences>({
-    icanTipOfWeek: false,
-    gradeLevelAlerts: false,
-    counselorEmails: false,
-    collegeAccessProfessionals: false
-  });
+  const [collegePlan, setCollegePlan] = useState<CollegePlan>('Not decided');
 
   const handleSavePreferences = async () => {
     try {
@@ -118,7 +114,7 @@ export default function PreferencesScreen() {
         role: selectedRole,
         schoolName,
         graduationYear,
-        preferences
+        collegePlan,
       };
 
       // Save updated user data
@@ -134,13 +130,6 @@ export default function PreferencesScreen() {
       console.error('Error saving preferences:', error);
       Alert.alert('Error', 'Failed to save preferences');
     }
-  };
-
-  const togglePreference = (key: keyof UserPreferences) => {
-    setPreferences(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
   };
 
   return (
@@ -167,15 +156,7 @@ export default function PreferencesScreen() {
           <Dropdown
             label="Role:"
             value={selectedRole}
-            options={[
-              'Student',
-              'Parent',
-              'Guardian',
-              'School Counselor',
-              'College Access Professional',
-              'Educator',
-              'Trio/GEARUP/Upward Bound'
-            ]}
+            options={['Student', 'Parent/Guardian']}
             onSelect={(value) => setSelectedRole(value as UserRole)}
           />
 
@@ -195,41 +176,12 @@ export default function PreferencesScreen() {
             onSelect={(value) => setGraduationYear(value as GraduationYear)}
           />
 
-          <ThemedText style={styles.sectionTitle}>Preferences</ThemedText>
-          
-          <View style={styles.checkboxContainer}>
-            <Pressable
-              style={styles.checkbox}
-              onPress={() => togglePreference('icanTipOfWeek')}
-            >
-              <View style={[styles.checkboxBox, preferences.icanTipOfWeek && styles.checkboxChecked]} />
-              <ThemedText style={styles.checkboxLabel}>ICAN Tip of the Week</ThemedText>
-            </Pressable>
-
-            <Pressable
-              style={styles.checkbox}
-              onPress={() => togglePreference('gradeLevelAlerts')}
-            >
-              <View style={[styles.checkboxBox, preferences.gradeLevelAlerts && styles.checkboxChecked]} />
-              <ThemedText style={styles.checkboxLabel}>Grade Level Alerts</ThemedText>
-            </Pressable>
-
-            <Pressable
-              style={styles.checkbox}
-              onPress={() => togglePreference('counselorEmails')}
-            >
-              <View style={[styles.checkboxBox, preferences.counselorEmails && styles.checkboxChecked]} />
-              <ThemedText style={styles.checkboxLabel}>School Counselor/Educator Emails</ThemedText>
-            </Pressable>
-
-            <Pressable
-              style={styles.checkbox}
-              onPress={() => togglePreference('collegeAccessProfessionals')}
-            >
-              <View style={[styles.checkboxBox, preferences.collegeAccessProfessionals && styles.checkboxChecked]} />
-              <ThemedText style={styles.checkboxLabel}>College Access Professionals</ThemedText>
-            </Pressable>
-          </View>
+          <Dropdown
+            label="College Plan:"
+            value={collegePlan}
+            options={['2-year college', '4-year college', 'Not decided', 'Apprenticeship']}
+            onSelect={(value) => setCollegePlan(value as CollegePlan)}
+          />
 
           <Pressable style={styles.saveButton} onPress={handleSavePreferences}>
             <ThemedText style={styles.saveButtonText}>Continue</ThemedText>

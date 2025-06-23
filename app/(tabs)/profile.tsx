@@ -7,7 +7,7 @@ import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, TextInput, View
 import { checklists } from './explore';
 
 type GradeLevel = '9th' | '10th' | '11th' | '12th';
-type UserRole = 'Student' | 'Parent' | 'Guardian' | 'School Counselor' | 'College Access Professional' | 'Educator' | 'Trio/GEARUP/Upward Bound';
+type UserRole = 'Student' | 'Parent/Guardian';
 type CollegePlan = '2-year college' | '4-year college' | 'Not decided' | 'Apprenticeship';
 
 type DropdownProps = {
@@ -209,15 +209,7 @@ export default function ProfileScreen() {
           <Dropdown
             label="Role:"
             value={userData.role}
-            options={[
-              'Student',
-              'Parent',
-              'Guardian',
-              'School Counselor',
-              'College Access Professional',
-              'Educator',
-              'Trio/GEARUP/Upward Bound'
-            ]}
+            options={['Student', 'Parent/Guardian']}
             onSelect={(value) => isEditing && setUserData({ ...userData, role: value as UserRole })}
             disabled={!isEditing}
           />
