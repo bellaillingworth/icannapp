@@ -3,46 +3,60 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { Session } from '@supabase/supabase-js';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const segments = useSegments();
-  const router = useRouter();
-
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+  const [session, setSession] = useState<Session | null>(null);
+  const segments = useSegments();
+  const router = useRouter();
 
   useEffect(() => {
-    const checkUserData = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const inAuthGroup = segments[0] === '(tabs)';
-        const isPublicPage = ['career-planning', 'college-planning', 'financial-aid'].includes(segments[0]);
-        const isPreferencesPage = segments[0] === 'preferences';
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
 
-        if (!session && inAuthGroup && !isPublicPage) {
-          // Redirect to signup if not logged in and trying to access protected routes
-          router.replace('/signup');
-        } else if (session && !inAuthGroup && !isPublicPage && !isPreferencesPage) {
-          // You can fetch user metadata here if needed
-          // For now, just redirect to explore
-          router.replace('/(tabs)/explore');
-        }
-      } catch (error) {
-        console.error('Error checking user session:', error);
-      }
-    };
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
 
-    checkUserData();
-  }, [segments]);
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    const inAuthGroup = segments[0] === '(tabs)';
+    if (!session && inAuthGroup) {
+      router.replace('/signin');
+    } else if (session && !inAuthGroup) {
+      supabase
+        .from('profiles')
+        .select('class_of')
+        .eq('id', session.user.id)
+        .single()
+        .then(({ data, error }) => {
+          if (error && error.code !== 'PGRST116') {
+            console.error('Error fetching profile:', error);
+          }
+          if (!data || !data.class_of) {
+            router.replace('/preferences');
+          } else {
+            router.replace('/(tabs)/explore');
+          }
+        });
+    }
+  }, [session, segments, loaded]);
 
   if (!loaded) {
-    // Async font loading only occurs in development.
     return null;
   }
 

@@ -1,63 +1,91 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, TextInput } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, TextInput, ActivityIndicator, View, Modal } from 'react-native';
 import { supabase } from '../supabaseClient';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
+type GradeLevel = '9th' | '10th' | '11th' | '12th';
+type GraduationYear = '2026' | '2027' | '2028' | '2029';
+type CollegePlan = '2-year college' | '4-year college' | 'Not decided' | 'Apprenticeship';
+
+function Dropdown({ label, value, options, onSelect }: { label: string; value: string; options: string[]; onSelect: (value: string) => void; }) {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <View style={{ marginBottom: 15 }}>
+      <ThemedText style={styles.label}>{label}</ThemedText>
+      <Pressable style={styles.input} onPress={() => setIsOpen(true)}>
+        <ThemedText>{value}</ThemedText>
+      </Pressable>
+      <Modal
+        visible={isOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsOpen(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setIsOpen(false)}>
+          <View style={styles.modalContent}>
+            <ScrollView>
+              {options.map((option) => (
+                <Pressable
+                  key={option}
+                  style={styles.optionButton}
+                  onPress={() => {
+                    onSelect(option);
+                    setIsOpen(false);
+                  }}
+                >
+                  <ThemedText>{option}</ThemedText>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
+    </View>
+  );
+}
+
 export default function SignUpScreen() {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSignUp = async () => {
-    if (!firstName || !lastName || !email || !password) {
+    if (!fullName || !email || !password) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
-
+    setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            firstName,
-            lastName
-          }
-        }
+            full_name: fullName,
+          },
+        },
       });
+
       if (error) {
-        Alert.alert('Error', error.message);
-        return;
+        throw error;
       }
-      // Wait for user to confirm email and be logged in
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        Alert.alert('Error', 'Please confirm your email and sign in.');
-        return;
-      }
-      // Insert profile row
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: user.id,
-          first_name: firstName,
-          last_name: lastName,
-          email,
-          grade: null,
-          role: null,
-          college_plan: null
-        });
-      if (profileError) {
-        Alert.alert('Error', 'Failed to create user profile: ' + profileError.message);
-        return;
-      }
-      router.replace('/preferences');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to create account');
+
+      Alert.alert('Success!', 'Please check your email to confirm your account, then you can sign in.');
+      
+      // Navigate safely after the alert is dismissed.
+      // Using setTimeout ensures this runs after the current render cycle.
+      setTimeout(() => {
+        router.replace('/signin');
+      }, 0);
+
+    } catch (error: any) {
+      Alert.alert('Error signing up', error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -76,20 +104,11 @@ export default function SignUpScreen() {
 
         <TextInput
           style={styles.input}
-          placeholder="First Name"
-          value={firstName}
-          onChangeText={setFirstName}
+          placeholder="Full Name"
+          value={fullName}
+          onChangeText={setFullName}
           placeholderTextColor="#666"
         />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Last Name"
-          value={lastName}
-          onChangeText={setLastName}
-          placeholderTextColor="#666"
-        />
-
         <TextInput
           style={styles.input}
           placeholder="Email"
@@ -99,7 +118,6 @@ export default function SignUpScreen() {
           autoCapitalize="none"
           placeholderTextColor="#666"
         />
-
         <TextInput
           style={styles.input}
           placeholder="Password"
@@ -108,14 +126,17 @@ export default function SignUpScreen() {
           secureTextEntry
           placeholderTextColor="#666"
         />
-
-        <Pressable style={styles.signUpButton} onPress={handleSignUp}>
-          <ThemedText style={styles.signUpButtonText}>Continue</ThemedText>
+        <Pressable style={styles.signUpButton} onPress={handleSignUp} disabled={loading}>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <ThemedText style={styles.signUpButtonText}>Continue</ThemedText>
+          )}
         </Pressable>
-
         <Pressable 
           style={styles.switchButton}
           onPress={() => router.replace('/signin')}
+          disabled={loading}
         >
           <ThemedText style={styles.switchButtonText}>
             Already have an account? Sign In
@@ -155,6 +176,12 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     fontSize: 16,
   },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 5,
+    color: '#333',
+  },
   signUpButton: {
     backgroundColor: '#0a7ea4',
     padding: 15,
@@ -175,5 +202,23 @@ const styles = StyleSheet.create({
   switchButtonText: {
     color: '#0a7ea4',
     fontSize: 16,
+  },
+  // Dropdown styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    width: '80%',
+    borderRadius: 10,
+    padding: 10,
+  },
+  optionButton: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
 }); 

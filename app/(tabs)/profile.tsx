@@ -2,34 +2,30 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import { checklists } from './explore';
+import { Alert, Image, Pressable, StyleSheet, TextInput, View, ActivityIndicator, ScrollView, Modal } from 'react-native';
 import { supabase } from '../../supabaseClient';
 
-type GradeLevel = '9th' | '10th' | '11th' | '12th';
 type UserRole = 'Student' | 'Parent/Guardian';
 type CollegePlan = '2-year college' | '4-year college' | 'Not decided' | 'Apprenticeship';
 
-type DropdownProps = {
-  label: string;
-  value: string;
-  options: string[];
-  onSelect: (value: string) => void;
-  disabled?: boolean;
+type UserData = {
+  fullName: string;
+  role: UserRole;
+  classOf: string;
+  collegePlan: CollegePlan;
 };
 
-function Dropdown({ label, value, options, onSelect, disabled = false }: DropdownProps) {
+function Dropdown({ label, value, options, onSelect, disabled = false }: { label: string; value: string; options: string[]; onSelect: (value: any) => void; disabled?: boolean; }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <View style={styles.dropdownContainer}>
+    <View style={styles.fieldContainer}>
       <ThemedText style={styles.label}>{label}</ThemedText>
       <Pressable
-        style={[styles.dropdownButton, disabled && styles.disabledButton]}
+        style={[styles.input, disabled && { backgroundColor: '#f0f0f0' }]}
         onPress={() => !disabled && setIsOpen(true)}
       >
-        <ThemedText style={[styles.dropdownButtonText, disabled && styles.disabledText]}>{value}</ThemedText>
-        {!disabled && <ThemedText style={styles.dropdownArrow}>▼</ThemedText>}
+        <ThemedText style={disabled && { color: '#888' }}>{value}</ThemedText>
       </Pressable>
 
       <Modal
@@ -42,298 +38,263 @@ function Dropdown({ label, value, options, onSelect, disabled = false }: Dropdow
           style={styles.modalOverlay}
           onPress={() => setIsOpen(false)}
         >
-          <ThemedView style={styles.modalContent}>
-            <ScrollView style={styles.optionsContainer}>
+          <View style={styles.modalContent}>
+            <ScrollView>
               {options.map((option) => (
                 <Pressable
                   key={option}
-                  style={[
-                    styles.optionButton,
-                    value === option && styles.selectedOption
-                  ]}
+                  style={styles.optionButton}
                   onPress={() => {
                     onSelect(option);
                     setIsOpen(false);
                   }}
                 >
-                  <ThemedText
-                    style={[
-                      styles.optionText,
-                      value === option && styles.selectedOptionText
-                    ]}
-                  >
-                    {option}
-                  </ThemedText>
+                  <ThemedText>{option}</ThemedText>
                 </Pressable>
               ))}
             </ScrollView>
-          </ThemedView>
+          </View>
         </Pressable>
       </Modal>
     </View>
   );
 }
 
-type UserData = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  grade: GradeLevel;
-  role: UserRole;
-  collegePlan?: CollegePlan;
-};
-
 export default function ProfileScreen() {
+  const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [userData, setUserData] = useState<UserData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    grade: '9th',
+    fullName: '',
     role: 'Student',
+    classOf: '',
+    collegePlan: 'Not decided',
   });
-  const [originalGrade, setOriginalGrade] = useState<GradeLevel>('9th');
-  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState('');
 
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.replace('/signup');
-        return;
-      }
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      if (error || !data) {
-        Alert.alert('Error', 'Failed to load profile');
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.replace('/signin');
+          return;
+        }
+        
+        setEmail(user.email || 'No email provided');
+
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, role, class_of, college_plan')
+          .eq('id', user.id)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          setUserData({
+            fullName: data.full_name || '',
+            role: data.role || 'Student',
+            classOf: data.class_of || 'N/A',
+            collegePlan: data.college_plan || 'Not decided',
+          });
+        }
+      } catch (error: any) {
+        Alert.alert('Error', 'Failed to load profile: ' + error.message);
+      } finally {
         setLoading(false);
-        return;
       }
-      setUserData({
-        firstName: data.first_name || '',
-        lastName: data.last_name || '',
-        email: data.email || '',
-        grade: data.grade || '9th',
-        role: data.role || 'Student',
-        collegePlan: data.college_plan || 'Not decided',
-      });
-      setOriginalGrade(data.grade || '9th');
-      setLoading(false);
     };
     fetchProfile();
   }, []);
 
-  const handleSave = async () => {
+  const handleUpdate = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        Alert.alert('Error', 'User not found');
-        setLoading(false);
-        return;
-      }
+      if (!user) throw new Error('User not found');
+
       const { error } = await supabase
         .from('profiles')
-        .upsert({
-          id: user.id,
-          first_name: userData.firstName,
-          last_name: userData.lastName,
-          email: userData.email,
-          grade: userData.grade,
+        .update({
+          full_name: userData.fullName,
           role: userData.role,
           college_plan: userData.collegePlan,
-        });
-      if (error) {
-        Alert.alert('Error', error.message);
-        setLoading(false);
-        return;
-      }
+        })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      
+      Alert.alert('Success', 'Profile updated successfully!');
       setIsEditing(false);
-      setOriginalGrade(userData.grade);
-      setLoading(false);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to save profile changes');
+    } catch (error: any) {
+      Alert.alert('Error', 'Failed to update profile: ' + error.message);
+    } finally {
       setLoading(false);
     }
   };
 
   const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        Alert.alert('Error', error.message);
-        return;
-      }
-      router.replace('/signup');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to logout');
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      Alert.alert('Error logging out', error.message);
     }
+    // The onAuthStateChange listener in _layout.tsx will handle the redirect.
   };
+  
+  if (loading) {
+    return (
+      <ThemedView style={styles.centered}>
+        <ActivityIndicator size="large" />
+      </ThemedView>
+    );
+  }
 
   return (
-    <ThemedView style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <Image
-          source={require('@/assets/images/icanlogo.png')}
-          style={styles.logo}
-          resizeMode="contain"
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <Image
+        source={require('@/assets/images/icanlogo.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
+
+      <ThemedText type="title" style={styles.title}>Your Profile</ThemedText>
+
+      <View style={styles.fieldContainer}>
+        <ThemedText style={styles.label}>Email</ThemedText>
+        <TextInput style={styles.input} value={email} editable={false} />
+      </View>
+      
+      <View style={styles.fieldContainer}>
+        <ThemedText style={styles.label}>Full Name</ThemedText>
+        <TextInput 
+          style={isEditing ? styles.inputEditable : styles.input} 
+          value={userData.fullName}
+          onChangeText={(text) => setUserData({...userData, fullName: text})}
+          editable={isEditing} 
         />
+      </View>
 
-        <ThemedText type="title" style={styles.title}>
-          Profile
-        </ThemedText>
+      <Dropdown
+        label="Role"
+        value={userData.role}
+        options={['Student', 'Parent/Guardian']}
+        onSelect={(value) => setUserData({ ...userData, role: value })}
+        disabled={!isEditing}
+      />
 
-        <ThemedView style={styles.formContainer}>
-          <ThemedText style={styles.label}>First Name:</ThemedText>
-          <TextInput
-            style={styles.input}
-            value={userData.firstName}
-            onChangeText={(text) => setUserData({ ...userData, firstName: text })}
-            editable={isEditing}
-            placeholderTextColor="#666"
-          />
+      <View style={styles.fieldContainer}>
+        <ThemedText style={styles.label}>Class of</ThemedText>
+        <TextInput style={styles.input} value={userData.classOf} editable={false} />
+      </View>
 
-          <ThemedText style={styles.label}>Last Name:</ThemedText>
-          <TextInput
-            style={styles.input}
-            value={userData.lastName}
-            onChangeText={(text) => setUserData({ ...userData, lastName: text })}
-            editable={isEditing}
-            placeholderTextColor="#666"
-          />
-
-          <ThemedText style={styles.label}>Email:</ThemedText>
-          <TextInput
-            style={styles.input}
-            value={userData.email}
-            onChangeText={(text) => setUserData({ ...userData, email: text })}
-            editable={isEditing}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            placeholderTextColor="#666"
-          />
-
-          <Dropdown
-            label="Grade Level:"
-            value={userData.grade}
-            options={['9th', '10th', '11th', '12th']}
-            onSelect={(value) => isEditing && setUserData({ ...userData, grade: value as GradeLevel })}
-            disabled={!isEditing}
-          />
-
-          <Dropdown
-            label="Role:"
-            value={userData.role}
-            options={['Student', 'Parent/Guardian']}
-            onSelect={(value) => isEditing && setUserData({ ...userData, role: value as UserRole })}
-            disabled={!isEditing}
-          />
-
-          <Dropdown
-            label="College Plan:"
-            value={userData.collegePlan || 'Not decided'}
-            options={['2-year college', '4-year college', 'Not decided', 'Apprenticeship']}
-            onSelect={(value) => isEditing && setUserData({ ...userData, collegePlan: value as CollegePlan })}
-            disabled={!isEditing}
-          />
-
-          <ThemedView style={styles.buttonContainer}>
-            {isEditing ? (
-              <>
-                <Pressable style={styles.saveButton} onPress={handleSave}>
-                  <ThemedText style={styles.buttonText}>Save Changes</ThemedText>
-                </Pressable>
-                <Pressable
-                  style={styles.cancelButton}
-                  onPress={() => {
-                    setIsEditing(false);
-                    // Reload original data
-                  }}
-                >
-                  <ThemedText style={styles.buttonText}>Cancel</ThemedText>
-                </Pressable>
-              </>
-            ) : (
-              <Pressable style={styles.editButton} onPress={() => setIsEditing(true)}>
-                <ThemedText style={styles.buttonText}>Edit Profile</ThemedText>
-              </Pressable>
-            )}
-          </ThemedView>
-
-          <Pressable style={styles.logoutButton} onPress={handleLogout}>
-            <ThemedText style={styles.logoutButtonText}>Logout</ThemedText>
+      <Dropdown
+        label="College Plan"
+        value={userData.collegePlan}
+        options={['2-year college', '4-year college', 'Not decided', 'Apprenticeship']}
+        onSelect={(value) => setUserData({ ...userData, collegePlan: value })}
+        disabled={!isEditing}
+      />
+      
+      <View style={styles.buttonContainer}>
+        {isEditing ? (
+          <Pressable style={styles.saveButton} onPress={handleUpdate}>
+            <ThemedText style={styles.buttonText}>Save Changes</ThemedText>
           </Pressable>
-        </ThemedView>
-      </ScrollView>
-    </ThemedView>
+        ) : (
+          <Pressable style={styles.editButton} onPress={() => setIsEditing(true)}>
+            <ThemedText style={styles.buttonText}>Edit Profile</ThemedText>
+          </Pressable>
+        )}
+        <Pressable style={styles.logoutButton} onPress={handleLogout}>
+          <ThemedText style={styles.buttonText}>Logout</ThemedText>
+        </Pressable>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  scrollView: {
-    flex: 1,
+    backgroundColor: 'white',
   },
   scrollContent: {
-    paddingTop: 60,
+    padding: 20,
     paddingBottom: 100,
   },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   logo: {
-    width: '100%',
-    height: 120,
+    width: '80%',
+    height: 80,
     alignSelf: 'center',
+    marginTop: 40,
     marginBottom: 20,
   },
   title: {
-    fontSize: 24,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 30,
   },
-  formContainer: {
-    padding: 20,
+  fieldContainer: {
+    marginBottom: 15,
   },
   label: {
     fontSize: 16,
-    marginBottom: 8,
-    marginTop: 16,
+    fontWeight: '600',
+    marginBottom: 5,
+    color: '#333'
   },
   input: {
     backgroundColor: '#f0f0f0',
-    padding: 15,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
     borderRadius: 10,
     fontSize: 16,
-    marginBottom: 15,
+    color: '#888',
   },
-  dropdownContainer: {
-    marginBottom: 15,
+  inputEditable: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderRadius: 10,
+    fontSize: 16,
+    color: '#000',
+    borderWidth: 1,
+    borderColor: '#ccc',
   },
-  dropdownButton: {
-    backgroundColor: '#f0f0f0',
+  buttonContainer: {
+    marginTop: 30,
+  },
+  editButton: {
+    backgroundColor: '#0a7ea4',
     padding: 15,
     borderRadius: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  saveButton: {
+    backgroundColor: '#28a745',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  logoutButton: {
+    backgroundColor: '#dc3545',
+    padding: 15,
+    borderRadius: 10,
     alignItems: 'center',
   },
-  disabledButton: {
-    opacity: 0.7,
-  },
-  dropdownButtonText: {
+  buttonText: {
+    color: '#fff',
     fontSize: 16,
+    fontWeight: 'bold',
   },
-  disabledText: {
-    color: '#666',
-  },
-  dropdownArrow: {
-    fontSize: 12,
-    color: '#666',
-  },
+  // Styles for Dropdown
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -341,68 +302,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
+    backgroundColor: 'white',
     width: '80%',
-    maxHeight: '80%',
-    backgroundColor: '#fff',
     borderRadius: 10,
-    padding: 20,
-  },
-  optionsContainer: {
-    maxHeight: 300,
+    padding: 10,
   },
   optionButton: {
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  selectedOption: {
-    backgroundColor: '#f0f0f0',
-  },
-  optionText: {
-    fontSize: 16,
-  },
-  selectedOptionText: {
-    color: '#0a7ea4',
-    fontWeight: '600',
-  },
-  buttonContainer: {
-    marginTop: 20,
-    gap: 10,
-  },
-  editButton: {
-    backgroundColor: '#0a7ea4',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  saveButton: {
-    backgroundColor: '#4caf50',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#f44336',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  logoutButton: {
-    backgroundColor: '#f0f0f0',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  logoutButtonText: {
-    color: '#f44336',
-    fontSize: 18,
-    fontWeight: '600',
+    borderBottomColor: '#eee',
   },
 }); 
