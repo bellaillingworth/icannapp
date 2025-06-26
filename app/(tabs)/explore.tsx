@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, Pressable, StyleSheet, View, Linking } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import { supabase } from '../../supabaseClient';
+import { useFocusEffect } from 'expo-router';
+import React from 'react';
 
 export type GradeLevel = '9th' | '10th' | '11th' | '12th' | 'Graduated';
 
@@ -20,7 +22,7 @@ type ChecklistData = {
 };
 
 // This function calculates the current grade based on graduation year
-const getCurrentGrade = (classOf: string | null): GradeLevel => {
+export const getCurrentGrade = (classOf: string | null): GradeLevel => {
     if (!classOf || isNaN(parseInt(classOf))) {
         return '9th'; // Default or if classOf is not set
     }
@@ -63,10 +65,50 @@ export default function ChecklistScreen() {
     const [userName, setUserName] = useState('');
     const [allTasksCompleted, setAllTasksCompleted] = useState(false);
   const confettiRef = useRef<ConfettiCannon>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchChecklistProgress();
-    }, []);
+  const subscriptionRef = useRef<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id ?? null);
+    });
+  }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchChecklistProgress();
+
+      // Subscribe to real-time changes for checklist_items
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+      }
+      if (!userId) return;
+      const channel = supabase
+        .channel('realtime_checklist_items')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'checklist_items',
+            filter: `user_id=eq.${userId}`
+          },
+          (payload) => {
+            fetchChecklistProgress();
+          }
+        )
+        .subscribe();
+      subscriptionRef.current = channel;
+
+      return () => {
+        if (subscriptionRef.current) {
+          supabase.removeChannel(subscriptionRef.current);
+          subscriptionRef.current = null;
+        }
+      };
+    }, [currentGrade, userId])
+  );
 
     const getOrderedMonths = (tasks: ChecklistData) => {
         const monthOrder = [
@@ -87,25 +129,27 @@ export default function ChecklistScreen() {
 
             const { data: profile, error: profileError } = await supabase
                 .from('profiles')
-                .select('class_of, full_name')
+                .select('grade, full_name')
                 .eq('id', user.id)
                 .single();
 
             if (profileError) throw profileError;
             setUserName(profile?.full_name || '');
-            
-            const grade = getCurrentGrade(profile?.class_of);
+            const grade = profile?.grade || '9th';
             setCurrentGrade(grade);
-
-            if (grade === 'Graduated') {
-                setTasksByMonth({});
-                setLoading(false);
-                return;
-            }
 
             const { data, error } = await supabase
                 .from('checklist_items')
-                .select('task_id, task_text, is_completed, month')
+                .select(`
+                    id,
+                    is_completed,
+                    month,
+                    grade,
+                    master_task_id,
+                    checklist_master_tasks (
+                        task_text
+                    )
+                `)
                 .eq('user_id', user.id)
                 .eq('grade', grade);
 
@@ -116,8 +160,10 @@ export default function ChecklistScreen() {
             const formattedTasks: ChecklistData = {};
             data.forEach(item => {
                 const task: Task = {
-                    id: item.task_id,
-                    text: item.task_text,
+                    id: item.master_task_id,
+                    text: (item.checklist_master_tasks && typeof item.checklist_master_tasks === 'object' && 'task_text' in item.checklist_master_tasks)
+                      ? String(item.checklist_master_tasks.task_text)
+                      : '',
                     done: item.is_completed,
                 };
                 if (!formattedTasks[item.month]) {
@@ -262,9 +308,9 @@ export default function ChecklistScreen() {
         resizeMode="contain"
       />
         {userName ? (
-            <ThemedText style={styles.welcomeText}>
+        <ThemedText style={styles.welcomeText}>
                 {`Welcome, ${userName}!`}
-            </ThemedText>
+        </ThemedText>
         ) : null}
         <ThemedText type="title" style={styles.title}>
                 {`${currentGrade} Grade Checklist`}
@@ -391,5 +437,5 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         textAlign: 'center',
         marginBottom: 10,
-    },
+  },
 });

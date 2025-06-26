@@ -130,7 +130,7 @@ export default function SignUpScreen() {
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <ThemedText style={styles.signUpButtonText}>Continue</ThemedText>
+          <ThemedText style={styles.signUpButtonText}>Continue</ThemedText>
           )}
         </Pressable>
         <Pressable 

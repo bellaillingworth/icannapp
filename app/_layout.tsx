@@ -35,9 +35,16 @@ export default function RootLayout() {
   useEffect(() => {
     if (!loaded) return;
     const inAuthGroup = segments[0] === '(tabs)';
+    const currentRoute = segments.join('/');
+    // Only redirect after sign-in, sign-up, or root
+    const shouldRedirect =
+      !session && inAuthGroup
+        ? true
+        : session &&
+          ["signin", "signup", "", undefined].includes(currentRoute);
     if (!session && inAuthGroup) {
       router.replace('/signin');
-    } else if (session && !inAuthGroup) {
+    } else if (session && shouldRedirect) {
       supabase
         .from('profiles')
         .select('class_of')

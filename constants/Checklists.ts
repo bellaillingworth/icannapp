@@ -146,7 +146,7 @@ export const checklists: ChecklistData = {
   '11th': {
     'August': [
       { id: '1', text: 'Sign up for ICAN Tip of the Week', done: false },
-      { id: '2', text: 'Learn about college fairs/events', done: false },
+      { id: '2', text: 'Learn about college fairs/events!!', done: false },
       { id: '3', text: 'Keep GPA up', done: false },
       { id: '4', text: 'Review/start a savings plan', done: false },
       { id: '5', text: 'Take a career assessment', done: false },

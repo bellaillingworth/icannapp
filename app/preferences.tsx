@@ -159,7 +159,7 @@ export const checklists: ChecklistData = {
   '11th': {
     'August': [
       { id: '1', text: 'Sign up for ICAN Tip of the Week', done: false },
-      { id: '2', text: 'Learn about college fairs/events', done: false },
+      { id: '2', text: 'Learn about college fairs/events!!', done: false },
       { id: '3', text: 'Keep GPA up', done: false },
       { id: '4', text: 'Review/start a savings plan', done: false },
       { id: '5', text: 'Take a career assessment', done: false },
@@ -374,7 +374,7 @@ export default function PreferencesScreen() {
       // First, update the user's profile
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ role: selectedRole, class_of: graduationYear, college_plan: collegePlan })
+        .update({ role: selectedRole, class_of: graduationYear, college_plan: collegePlan, grade: selectedGrade })
         .eq('id', user.id);
 
       if (profileError) {

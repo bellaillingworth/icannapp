@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Image, Pressable, StyleSheet, TextInput, View, ActivityIndicator, ScrollView, Modal } from 'react-native';
 import { supabase } from '../../supabaseClient';
+import { getCurrentGrade } from './explore';
 
 type UserRole = 'Student' | 'Parent/Guardian';
 type CollegePlan = '2-year college' | '4-year college' | 'Not decided' | 'Apprenticeship';
@@ -13,16 +14,23 @@ type UserData = {
   role: UserRole;
   classOf: string;
   collegePlan: CollegePlan;
+  grade?: string;
 };
 
 function Dropdown({ label, value, options, onSelect, disabled = false }: { label: string; value: string; options: string[]; onSelect: (value: any) => void; disabled?: boolean; }) {
   const [isOpen, setIsOpen] = useState(false);
 
+  React.useEffect(() => {
+    if (label === 'Grade') {
+      console.log('Dropdown for Grade: disabled =', disabled);
+    }
+  }, [disabled, label]);
+
   return (
     <View style={styles.fieldContainer}>
       <ThemedText style={styles.label}>{label}</ThemedText>
       <Pressable
-        style={[styles.input, disabled && { backgroundColor: '#f0f0f0' }]}
+        style={[styles.input, disabled ? { backgroundColor: '#f0f0f0' } : { backgroundColor: '#fff', borderWidth: 1, borderColor: '#0a7ea4' }]}
         onPress={() => !disabled && setIsOpen(true)}
       >
         <ThemedText style={disabled && { color: '#888' }}>{value}</ThemedText>
@@ -70,11 +78,12 @@ export default function ProfileScreen() {
     collegePlan: 'Not decided',
   });
   const [email, setEmail] = useState('');
+  const [grade, setGrade] = useState('');
 
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
-      try {
+    try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           router.replace('/signin');
@@ -85,26 +94,28 @@ export default function ProfileScreen() {
 
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, role, class_of, college_plan')
+          .select('full_name, role, class_of, college_plan, grade')
           .eq('id', user.id)
           .single();
 
         if (error) throw error;
 
         if (data) {
-          setUserData({
+        setUserData({
             fullName: data.full_name || '',
-            role: data.role || 'Student',
+          role: data.role || 'Student',
             classOf: data.class_of || 'N/A',
             collegePlan: data.college_plan || 'Not decided',
-          });
-        }
+            grade: data.grade || '',
+        });
+          setGrade(data.grade || '');
+      }
       } catch (error: any) {
         Alert.alert('Error', 'Failed to load profile: ' + error.message);
       } finally {
         setLoading(false);
-      }
-    };
+    }
+  };
     fetchProfile();
   }, []);
 
@@ -114,17 +125,59 @@ export default function ProfileScreen() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not found');
 
+      // Fetch the current profile to compare the previous grade
+      const { data: currentProfile, error: fetchProfileError } = await supabase
+        .from('profiles')
+        .select('grade')
+        .eq('id', user.id)
+        .single();
+      if (fetchProfileError) throw fetchProfileError;
+      const previousGrade = currentProfile?.grade;
+
       const { error } = await supabase
         .from('profiles')
         .update({
           full_name: userData.fullName,
           role: userData.role,
+          class_of: userData.classOf,
           college_plan: userData.collegePlan,
+          grade: grade,
         })
         .eq('id', user.id);
       
       if (error) throw error;
-      
+
+      // If the grade changed, reset checklist_progress to 0/total for the new grade
+      let progressString = '';
+      if (previousGrade !== grade) {
+        // Fetch all checklist items for this user and new grade
+        const { data: items, error: itemsError } = await supabase
+          .from('checklist_items')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('grade', grade);
+        if (itemsError) throw itemsError;
+        const total = items.length;
+        progressString = `0/${total}`;
+      } else {
+        // If grade didn't change, recalculate as before
+        const { data: items, error: itemsError } = await supabase
+          .from('checklist_items')
+          .select('is_completed')
+          .eq('user_id', user.id)
+          .eq('grade', grade);
+        if (itemsError) throw itemsError;
+        const total = items.length;
+        const completed = items.filter((item: any) => item.is_completed).length;
+        progressString = `${completed}/${total}`;
+      }
+      // Update checklist_progress in profiles
+      const { error: progressError } = await supabase
+        .from('profiles')
+        .update({ checklist_progress: progressString })
+        .eq('id', user.id);
+      if (progressError) throw progressError;
+
       Alert.alert('Success', 'Profile updated successfully!');
       setIsEditing(false);
     } catch (error: any) {
@@ -152,11 +205,11 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      <Image
-        source={require('@/assets/images/icanlogo.png')}
-        style={styles.logo}
-        resizeMode="contain"
-      />
+        <Image
+          source={require('@/assets/images/icanlogo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
 
       <ThemedText type="title" style={styles.title}>Your Profile</ThemedText>
 
@@ -167,50 +220,65 @@ export default function ProfileScreen() {
       
       <View style={styles.fieldContainer}>
         <ThemedText style={styles.label}>Full Name</ThemedText>
-        <TextInput 
+          <TextInput
           style={isEditing ? styles.inputEditable : styles.input} 
           value={userData.fullName}
           onChangeText={(text) => setUserData({...userData, fullName: text})}
-          editable={isEditing} 
-        />
+            editable={isEditing}
+          />
       </View>
 
-      <Dropdown
+          <Dropdown
         label="Role"
         value={userData.role}
         options={['Student', 'Parent/Guardian']}
         onSelect={(value) => setUserData({ ...userData, role: value })}
-        disabled={!isEditing}
-      />
+            disabled={!isEditing}
+          />
 
       <View style={styles.fieldContainer}>
         <ThemedText style={styles.label}>Class of</ThemedText>
-        <TextInput style={styles.input} value={userData.classOf} editable={false} />
+        <TextInput
+          style={isEditing ? styles.inputEditable : styles.input}
+          value={userData.classOf}
+          onChangeText={(text) => setUserData({ ...userData, classOf: text })}
+          editable={isEditing}
+        />
       </View>
 
-      <Dropdown
+      <View style={styles.fieldContainer}>
+          <Dropdown
+          label="Grade"
+          value={grade}
+          options={['9th', '10th', '11th', '12th']}
+          onSelect={setGrade}
+            disabled={!isEditing}
+          />
+      </View>
+
+          <Dropdown
         label="College Plan"
         value={userData.collegePlan}
-        options={['2-year college', '4-year college', 'Not decided', 'Apprenticeship']}
+            options={['2-year college', '4-year college', 'Not decided', 'Apprenticeship']}
         onSelect={(value) => setUserData({ ...userData, collegePlan: value })}
-        disabled={!isEditing}
-      />
-      
+            disabled={!isEditing}
+          />
+
       <View style={styles.buttonContainer}>
-        {isEditing ? (
+            {isEditing ? (
           <Pressable style={styles.saveButton} onPress={handleUpdate}>
-            <ThemedText style={styles.buttonText}>Save Changes</ThemedText>
-          </Pressable>
-        ) : (
-          <Pressable style={styles.editButton} onPress={() => setIsEditing(true)}>
-            <ThemedText style={styles.buttonText}>Edit Profile</ThemedText>
-          </Pressable>
-        )}
-        <Pressable style={styles.logoutButton} onPress={handleLogout}>
+                  <ThemedText style={styles.buttonText}>Save Changes</ThemedText>
+                </Pressable>
+            ) : (
+              <Pressable style={styles.editButton} onPress={() => setIsEditing(true)}>
+                <ThemedText style={styles.buttonText}>Edit Profile</ThemedText>
+              </Pressable>
+            )}
+          <Pressable style={styles.logoutButton} onPress={handleLogout}>
           <ThemedText style={styles.buttonText}>Logout</ThemedText>
-        </Pressable>
+          </Pressable>
       </View>
-    </ScrollView>
+      </ScrollView>
   );
 }
 
