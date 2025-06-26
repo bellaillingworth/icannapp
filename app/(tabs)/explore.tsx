@@ -231,6 +231,24 @@ export default function ChecklistScreen() {
             if (error) {
                 throw error;
             }
+
+            // --- Update checklist_progress in profiles table ---
+            // Fetch all checklist items for this user and current grade
+            const { data: items, error: itemsError } = await supabase
+                .from('checklist_items')
+                .select('is_completed')
+                .eq('user_id', user.id)
+                .eq('grade', currentGrade);
+            if (itemsError) throw itemsError;
+            const total = items.length;
+            const completed = items.filter((item: any) => item.is_completed).length;
+            const progressString = `${completed}/${total}`;
+            const { error: progressError } = await supabase
+                .from('profiles')
+                .update({ checklist_progress: progressString })
+                .eq('id', user.id);
+            if (progressError) throw progressError;
+            // --- End update checklist_progress ---
         } catch (error: any) {
             // Revert UI on failure
             updatedTasksByMonth[month][taskIndex] = { ...task, done: !newDoneStatus };

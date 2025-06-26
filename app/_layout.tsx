@@ -34,7 +34,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!loaded) return;
-    const inAuthGroup = segments[0] === '(tabs)';
+        const inAuthGroup = segments[0] === '(tabs)';
     const currentRoute = segments.join('/');
     // Only redirect after sign-in, sign-up, or root
     const shouldRedirect =
@@ -58,9 +58,9 @@ export default function RootLayout() {
             router.replace('/preferences');
           } else {
             router.replace('/(tabs)/explore');
-          }
+        }
         });
-    }
+      }
   }, [session, segments, loaded]);
 
   if (!loaded) {

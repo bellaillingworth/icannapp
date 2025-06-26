@@ -257,7 +257,7 @@ export default function ProfileScreen() {
       </View>
 
           <Dropdown
-        label="College Plan"
+        label="Post-High School Plan"
         value={userData.collegePlan}
             options={['2-year college', '4-year college', 'Not decided', 'Apprenticeship']}
         onSelect={(value) => setUserData({ ...userData, collegePlan: value })}
