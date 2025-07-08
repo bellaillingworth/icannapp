@@ -142,6 +142,7 @@ export default function ChecklistScreen() {
                 .from('checklist_items')
                 .select(`
                     id,
+                    task_id,
                     is_completed,
                     month,
                     grade,
@@ -161,10 +162,10 @@ export default function ChecklistScreen() {
             const formattedTasks: ChecklistData = {};
             data.forEach(item => {
                 const task: Task = {
-                    id: item.master_task_id,
+                    id: item.task_id, // use unique task_id
                     text: (item.checklist_master_tasks && typeof item.checklist_master_tasks === 'object' && 'task_text' in item.checklist_master_tasks)
                       ? String(item.checklist_master_tasks.task_text)
-                      : item.task_text || '', // fallback to task_text from checklist_items
+                      : item.task_text || '',
                     done: item.is_completed,
                 };
                 if (!formattedTasks[item.month]) {
