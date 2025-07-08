@@ -374,7 +374,7 @@ export default function PreferencesScreen() {
       // First, update the user's profile
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ role: selectedRole, class_of: graduationYear, college_plan: collegePlan, grade: selectedGrade })
+        .update({ role: selectedRole, class_of: graduationYear, college_plan: collegePlan, grade: selectedGrade, school_name: schoolName })
         .eq('id', user.id);
 
       if (profileError) {

@@ -15,6 +15,7 @@ type UserData = {
   classOf: string;
   collegePlan: CollegePlan;
   grade?: string;
+  schoolName?: string;
 };
 
 function Dropdown({ label, value, options, onSelect, disabled = false }: { label: string; value: string; options: string[]; onSelect: (value: any) => void; disabled?: boolean; }) {
@@ -94,7 +95,7 @@ export default function ProfileScreen() {
 
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, role, class_of, college_plan, grade')
+          .select('full_name, role, class_of, college_plan, grade, school_name')
           .eq('id', user.id)
           .single();
 
@@ -107,6 +108,7 @@ export default function ProfileScreen() {
             classOf: data.class_of || 'N/A',
             collegePlan: data.college_plan || 'Not decided',
             grade: data.grade || '',
+            schoolName: data.school_name || '',
         });
           setGrade(data.grade || '');
       }
@@ -142,6 +144,7 @@ export default function ProfileScreen() {
           class_of: userData.classOf,
           college_plan: userData.collegePlan,
           grade: grade,
+          school_name: userData.schoolName
         })
         .eq('id', user.id);
       
@@ -235,13 +238,13 @@ export default function ProfileScreen() {
         onSelect={(value) => setUserData({ ...userData, role: value })}
             disabled={!isEditing}
           />
-
+      
       <View style={styles.fieldContainer}>
-        <ThemedText style={styles.label}>Class of</ThemedText>
+        <ThemedText style={styles.label}>School/Organization</ThemedText>
         <TextInput
           style={isEditing ? styles.inputEditable : styles.input}
-          value={userData.classOf}
-          onChangeText={(text) => setUserData({ ...userData, classOf: text })}
+          value={userData.schoolName}
+          onChangeText={(text) => setUserData({ ...userData, schoolName: text })}
           editable={isEditing}
         />
       </View>
@@ -254,6 +257,16 @@ export default function ProfileScreen() {
           onSelect={setGrade}
             disabled={!isEditing}
           />
+      </View>
+
+      <View style={styles.fieldContainer}>
+        <ThemedText style={styles.label}>Class of</ThemedText>
+        <TextInput
+          style={isEditing ? styles.inputEditable : styles.input}
+          value={userData.classOf}
+          onChangeText={(text) => setUserData({ ...userData, classOf: text })}
+          editable={isEditing}
+        />
       </View>
 
           <Dropdown
