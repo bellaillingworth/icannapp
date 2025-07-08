@@ -146,6 +146,7 @@ export default function ChecklistScreen() {
                     month,
                     grade,
                     master_task_id,
+                    task_text,
                     checklist_master_tasks (
                         task_text
                     )
@@ -163,7 +164,7 @@ export default function ChecklistScreen() {
                     id: item.master_task_id,
                     text: (item.checklist_master_tasks && typeof item.checklist_master_tasks === 'object' && 'task_text' in item.checklist_master_tasks)
                       ? String(item.checklist_master_tasks.task_text)
-                      : '',
+                      : item.task_text || '', // fallback to task_text from checklist_items
                     done: item.is_completed,
                 };
                 if (!formattedTasks[item.month]) {

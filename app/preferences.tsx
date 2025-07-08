@@ -428,7 +428,7 @@ export default function PreferencesScreen() {
         console.log('Checklist items already exist for this user.');
       }
 
-      Alert.alert('Success', 'Account created! Please sign in.');
+      router.push('/(tabs)/explore');
 
     } catch (error: any) {
       console.error('Error in handleSavePreferences:', error);
