@@ -34,6 +34,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="alert"
+        options={{
+          title: 'Alert',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="exclamationmark.triangle.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="explore"
         options={{
           title: 'CheckList',

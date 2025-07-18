@@ -11,6 +11,7 @@ import { ThemedView } from '@/components/ThemedView';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { supabase } from '@/supabaseClient';
+import AnnouncementSlider from '@/components/AnnouncementSlider';
 
 async function registerForPushNotificationsAsync(userId: string) {
   let token;
@@ -68,7 +69,7 @@ export default function HomeScreen() {
           contentFit='contain'
         />
       }>
-
+      <AnnouncementSlider />
       <ThemedView style={styles.section}>
         <ThemedText type="subtitle" style={styles.sectionTitle}>Career Planning</ThemedText>
         <ResourceCard
