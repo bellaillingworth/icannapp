@@ -14,7 +14,7 @@ interface Announcement {
   link?: string;
 }
 
-export default function AlertScreen() {
+export default function NotificationScreen() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
   useEffect(() => {
