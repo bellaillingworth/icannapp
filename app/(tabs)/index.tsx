@@ -8,35 +8,7 @@ import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import { supabase } from '@/supabaseClient';
 import AnnouncementSlider from '@/components/AnnouncementSlider';
-
-async function registerForPushNotificationsAsync(userId: string) {
-  let token;
-  if (Device.isDevice) {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    if (finalStatus !== 'granted') {
-      alert('Failed to get push token for push notification!');
-      return;
-    }
-    token = (await Notifications.getExpoPushTokenAsync()).data;
-    // Store the token in Supabase
-    await supabase
-      .from('profiles')
-      .update({ expo_push_token: token })
-      .eq('id', userId);
-  } else {
-    alert('Must use physical device for Push Notifications');
-  }
-  return token;
-}
 
 type RouteType = '/career-planning' | '/college-planning' | '/financial-aid';
 
