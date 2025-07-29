@@ -6,14 +6,14 @@ import { Alert, Image, Pressable, StyleSheet, TextInput, View, ActivityIndicator
 import { supabase } from '../../supabaseClient';
 import { getCurrentGrade } from './explore';
 
-type UserRole = 'Student' | 'Parent/Guardian';
-type CollegePlan = '2-year college' | '4-year college' | 'Not decided' | 'Apprenticeship';
+type UserRole = 'Student' | 'Parent/Guardian' | 'Counselor';
+type PostHighSchoolPlan = '2-year college' | '4-year college' | 'Not decided' | 'Apprenticeship' | 'N/A';
 
 type UserData = {
   fullName: string;
   role: UserRole;
   classOf: string;
-  collegePlan: CollegePlan;
+  collegePlan: PostHighSchoolPlan;
   grade?: string;
   schoolName?: string;
 };
@@ -95,7 +95,7 @@ export default function ProfileScreen() {
 
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, role, class_of, college_plan, grade, school_name')
+          .select('full_name, role, class_of, post_high_school_plan, grade, school_name')
           .eq('id', user.id)
           .single();
 
@@ -106,7 +106,7 @@ export default function ProfileScreen() {
             fullName: data.full_name || '',
           role: data.role || 'Student',
             classOf: data.class_of || 'N/A',
-            collegePlan: data.college_plan || 'Not decided',
+            collegePlan: data.post_high_school_plan || 'Not decided',
             grade: data.grade || '',
             schoolName: data.school_name || '',
         });
@@ -142,7 +142,7 @@ export default function ProfileScreen() {
           full_name: userData.fullName,
           role: userData.role,
           class_of: userData.classOf,
-          college_plan: userData.collegePlan,
+          post_high_school_plan: userData.collegePlan,
           grade: grade,
           school_name: userData.schoolName
         })
@@ -234,7 +234,7 @@ export default function ProfileScreen() {
           <Dropdown
         label="Role"
         value={userData.role}
-        options={['Student', 'Parent/Guardian']}
+        options={['Student', 'Parent/Guardian', 'Counselor']}
         onSelect={(value) => setUserData({ ...userData, role: value })}
             disabled={!isEditing}
           />
@@ -272,7 +272,7 @@ export default function ProfileScreen() {
           <Dropdown
         label="Post-High School Plan"
         value={userData.collegePlan}
-            options={['2-year college', '4-year college', 'Not decided', 'Apprenticeship']}
+            options={['2-year college', '4-year college', 'Not decided', 'Apprenticeship', 'N/A']}
         onSelect={(value) => setUserData({ ...userData, collegePlan: value })}
             disabled={!isEditing}
           />

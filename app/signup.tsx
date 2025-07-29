@@ -7,8 +7,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
 type GradeLevel = '9th' | '10th' | '11th' | '12th';
-type GraduationYear = '2026' | '2027' | '2028' | '2029';
-type CollegePlan = '2-year college' | '4-year college' | 'Not decided' | 'Apprenticeship';
+type GraduationYear = '2026' | '2027' | '2028' | '2029' | 'N/A';
+type PostHighSchoolPlan = '2-year college' | '4-year college' | 'Not decided' | 'Apprenticeship' | 'N/A';
 
 function Dropdown({ label, value, options, onSelect }: { label: string; value: string; options: string[]; onSelect: (value: string) => void; }) {
   const [isOpen, setIsOpen] = useState(false);

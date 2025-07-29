@@ -8,9 +8,9 @@ import { supabase } from '@/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 
 type GradeLevel = '9th' | '10th' | '11th' | '12th';
-type UserRole = 'Student' | 'Parent/Guardian';
+type UserRole = 'Student' | 'Parent/Guardian' | 'Counselor';
 type GraduationYear = '2026' | '2027' | '2028' | '2029' | 'N/A';
-type CollegePlan = '2-year college' | '4-year college' | 'Not decided' | 'Apprenticeship';
+type PostHighSchoolPlan = '2-year college' | '4-year college' | 'Not decided' | 'Apprenticeship' | 'N/A';
 
 
 type Task = {
@@ -362,7 +362,7 @@ export default function PreferencesScreen() {
   const [selectedRole, setSelectedRole] = useState<UserRole>('Student');
   const [schoolName, setSchoolName] = useState('');
   const [graduationYear, setGraduationYear] = useState<GraduationYear>('2026');
-  const [collegePlan, setCollegePlan] = useState<CollegePlan>('Not decided');
+  const [postHighSchoolPlan, setPostHighSchoolPlan] = useState<PostHighSchoolPlan>('Not decided');
   const [loading, setLoading] = useState(false);
 
   const handleSavePreferences = async () => {
@@ -374,7 +374,7 @@ export default function PreferencesScreen() {
       // First, update the user's profile
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ role: selectedRole, class_of: graduationYear, college_plan: collegePlan, grade: selectedGrade, school_name: schoolName })
+        .update({ role: selectedRole, class_of: graduationYear, post_high_school_plan: postHighSchoolPlan, grade: selectedGrade, school_name: schoolName })
         .eq('id', user.id);
 
       if (profileError) {
@@ -462,7 +462,7 @@ export default function PreferencesScreen() {
           <Dropdown
             label="Role:"
             value={selectedRole}
-            options={['Student', 'Parent/Guardian']}
+            options={['Student', 'Parent/Guardian', 'Counselor']}
             onSelect={(value) => setSelectedRole(value as UserRole)}
           />
 
@@ -483,10 +483,10 @@ export default function PreferencesScreen() {
           />
 
           <Dropdown
-            label="College Plan:"
-            value={collegePlan}
-            options={['2-year college', '4-year college', 'Not decided', 'Apprenticeship']}
-            onSelect={(value) => setCollegePlan(value as CollegePlan)}
+            label="Post-High School Plan:"
+            value={postHighSchoolPlan}
+            options={['2-year college', '4-year college', 'Not decided', 'Apprenticeship', 'N/A']}
+            onSelect={(value) => setPostHighSchoolPlan(value as PostHighSchoolPlan)}
           />
 
           <Pressable style={styles.saveButton} onPress={handleSavePreferences} disabled={loading}>
