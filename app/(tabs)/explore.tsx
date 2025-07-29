@@ -50,9 +50,119 @@ function getICANLink(text: string): string | null {
     }
   if (text.toLowerCase().includes('golden circle')) {
     return 'https://www.goldencirclecollegefair.com/';
+    }
+  if (text.toLowerCase().includes('technical and two-year programs')) {
+    return 'https://www.icansucceed.org/CTEoptions';
+    }
+  if (text.toLowerCase().includes('learn about apprenticeship programs')) {
+      return 'https://www.icansucceed.org/careertraining';
+    }
+  if (text.toLowerCase().includes('compare career pathways')) {
+      return 'https://www.icansucceed.org/career-planning';
+    }
+  if (text.toLowerCase().includes('learn about types of fincancial aid')) {
+      return 'https://www.icansucceed.org/payforcollege';
+    }
+  if (text.toLowerCase().includes('create an activites resume')) {
+      return 'https://www.icansucceed.org/activitiesresume';
+    }
+  if (text.toLowerCase().includes('sign up for ican tip of the week')) {
+      return 'https://www.icansucceed.org/signup';
+    }
+  if (text.toLowerCase().includes('learn about college fairs')) {
+      return 'https://www.icansucceed.org/collegefairs';
+    }
+  if (text.toLowerCase().includes('take a career')) {
+      return 'https://www.icansucceed.org/career-planning';
+    }
+  if (text.toLowerCase().includes('schedule ican advising session')) {
+      return 'https://www.icansucceed.org/apt';
+    }
+  if (text.toLowerCase().includes('explore military and apprenticeship options')) {
+      return 'https://www.icansucceed.org/militaryoptions';
+    }
+  if (text.toLowerCase().includes('attend the golden circle')) {
+      return 'https://www.icansucceed.org/goldencircle';
+    }
+  if (text.toLowerCase().includes('download the college checklist')) {
+      return 'https://www.icansucceed.org/materials';
+    }
+  if (text.toLowerCase().includes('use collegeraptor.com')) {
+      return 'https://www.CollegeRaptor.com';
+    }
+  if (text.toLowerCase().includes('schedule planning with ican')) {
+      return 'https://www.icansucceed.org/apt';
+    }
+  if (text.toLowerCase().includes('create an aeducation')) {
+      return 'https://www.studentloan.org/ROCITool';
+    }
+  if (text.toLowerCase().includes('attend a financial aid seminar')) {
+      return 'https://www.icansucceed.org/events';
+    }
+  if (text.toLowerCase().includes('attend the ican future ready fair')) {
+      return 'https://www.icansucceed.org/futurereadyfair';
+    }
+  if (text.toLowerCase().includes('go on campus visits')) {
+      return 'https://www.icansucceed.org/materials';
+    }
+  if (text.toLowerCase().includes('start private scholarship applications')) {
+      return 'https://www.icansucceed.org/scholarships';
+    }
+  if (text.toLowerCase().includes('sign up for ican senior alerts')) {
+      return 'https://www.icansucceed.org/signup';
+    }
+  if (text.toLowerCase().includes('gather needed documents for fafsa completion')) {
+      return 'https://www.icansucceed.org/whattobring';
+    }
+  if (text.toLowerCase().includes('schedule your fafsa appointment')) {
+      return 'https://www.icansucceed.org/apt';
+    }
+  if (text.toLowerCase().includes('update activites resume')) {
+      return 'https://www.icansucceed.org/activitiesresume';
+    }
+  if (text.toLowerCase().includes('schedule ican college/career planning')) {
+      return 'https://www.icansucceed.org/apt';
+    }
+  if (text.toLowerCase().includes('submit your fafsa')) {
+      return 'https://www.icansucceed.org/priority';
+    }
+  if (text.toLowerCase().includes('schedule fafsa completion appointment')) {
+      return 'https://www.icansucceed.org/apt';
+    }
+  if (text.toLowerCase().includes('research military benefits')) {
+      return 'https://www.icansucceed.org/militaryoptions';
+    }
+  if (text.toLowerCase().includes('find fafsa assistance events')) {
+      return 'https://www.icansucceed.org/FAFSAreadyiaevents';
+    }
+  if (text.toLowerCase().includes('set up studentaid.gov')) {
+      return 'https://www.studentaid.gov';
+    }
+  if (text.toLowerCase().includes('start free scholarship searches')) {
+      return 'https://www.icansucceed.org/scholarships';
+    }
+  if (text.toLowerCase().includes('create a plan to')) {
+      return 'https://www.studentloan.org/gameplan';
+    }
+  if (text.toLowerCase().includes('schedule a financial aid')) {
+      return 'https://www.icansucceed.org/apt';
+    }
+  if (text.toLowerCase().includes('continue applying for scholarships')) {
+      return 'https://www.icansucceed.org/scholarships';
+    }
+  if (text.toLowerCase().includes('heading to an apprenticeship')) {
+      return 'https://www.icansucceed.org/career-training';
+    }
+  if (text.toLowerCase().includes('meet with ican to')) {
+      return 'https://www.icansucceed.org/apt';
+    }
+  if (text.toLowerCase().includes('packing list')) {
+      return 'https://www.icansucceed.org/materials';
+    }
+  else{
+    return null;
   }
-  // Add other links here...
-  return null;
+  
 }
 
 export default function ChecklistScreen() {
