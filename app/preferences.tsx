@@ -138,12 +138,65 @@ export default function PreferencesScreen() {
             planFilter = {};
         }
 
-        // Fetch master tasks for the selected grade and plan from Supabase
-        const { data: masterTasks, error: masterTasksError } = await supabase
-          .from('checklist_master_tasks')
-          .select('*')
-          .eq('grade', selectedGrade)
-          .match(planFilter);
+        let masterTasks: any[] = [];
+        let masterTasksError: any = null;
+
+        // Determine which table to query based on user role
+        if (selectedRole === 'Student') {
+          // Fetch master tasks for students
+          const result = await supabase
+            .from('checklist_master_tasks')
+            .select('*')
+            .eq('grade', selectedGrade)
+            .match(planFilter);
+          
+          masterTasks = result.data || [];
+          masterTasksError = result.error;
+
+        } else if (selectedRole === 'Counselor') {
+          // Fetch counselor tasks - grade only, no month filtering
+          const result = await supabase
+            .from('checklist_counselors')
+            .select('*')
+            .eq('grade', selectedGrade);
+          
+          masterTasks = result.data || [];
+          masterTasksError = result.error;
+
+        } else if (selectedRole === 'Parent/Guardian') {
+          // Fetch parent tasks - grade, month, and plan filtering
+          let planFilter = {};
+          switch (postHighSchoolPlan) {
+            case '4-year college':
+              planFilter = { four_year: true };
+              break;
+            case '2-year college':
+              planFilter = { two_year: true };
+              break;
+            case 'Apprenticeship':
+              planFilter = { apprenticeship: true };
+              break;
+            case 'Not decided':
+            case 'N/A':
+              planFilter = { undecided: true };
+              break;
+            default:
+              planFilter = {};
+          }
+
+          const result = await supabase
+            .from('checklist_parents')
+            .select('*')
+            .eq('grade', selectedGrade)
+            .match(planFilter);
+          
+          masterTasks = result.data || [];
+          masterTasksError = result.error;
+
+        } else {
+          console.log('Unknown user role:', selectedRole);
+          return;
+        }
 
         if (masterTasksError) {
           console.error('Error fetching master tasks:', masterTasksError);
@@ -170,10 +223,10 @@ export default function PreferencesScreen() {
               console.error('Error inserting checklist items:', insertError);
               throw insertError;
             }
-            console.log('Successfully created reference records for', allTasks.length, 'tasks.');
+            console.log('Successfully created reference records for', allTasks.length, 'tasks for role:', selectedRole);
           }
         } else {
-          console.log('No master tasks found for grade:', selectedGrade, 'and plan:', postHighSchoolPlan);
+          console.log('No master tasks found for role:', selectedRole, 'grade:', selectedGrade);
         }
       } else {
         console.log('Checklist items already exist for this user.');

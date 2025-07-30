@@ -182,12 +182,65 @@ export default function ProfileScreen() {
             planFilter = {};
         }
 
-        // Fetch master tasks for the new grade from Supabase
-        const { data: masterTasks, error: masterTasksError } = await supabase
-          .from('checklist_master_tasks')
-          .select('*')
-          .eq('grade', grade)
-          .match(planFilter);
+        let masterTasks: any[] = [];
+        let masterTasksError: any = null;
+
+        // Determine which table to query based on user role
+        if (userData.role === 'Student') {
+          // Fetch master tasks for students
+          const result = await supabase
+            .from('checklist_master_tasks')
+            .select('*')
+            .eq('grade', grade)
+            .match(planFilter);
+          
+          masterTasks = result.data || [];
+          masterTasksError = result.error;
+
+        } else if (userData.role === 'Counselor') {
+          // Fetch counselor tasks - grade only, no month filtering
+          const result = await supabase
+            .from('checklist_counselors')
+            .select('*')
+            .eq('grade', grade);
+          
+          masterTasks = result.data || [];
+          masterTasksError = result.error;
+
+        } else if (userData.role === 'Parent/Guardian') {
+          // Fetch parent tasks - grade, month, and plan filtering
+          let planFilter = {};
+          switch (userData.collegePlan) {
+            case '4-year college':
+              planFilter = { four_year: true };
+              break;
+            case '2-year college':
+              planFilter = { two_year: true };
+              break;
+            case 'Apprenticeship':
+              planFilter = { apprenticeship: true };
+              break;
+            case 'Not decided':
+            case 'N/A':
+              planFilter = { undecided: true };
+              break;
+            default:
+              planFilter = {};
+          }
+
+          const result = await supabase
+            .from('checklist_parents')
+            .select('*')
+            .eq('grade', grade)
+            .match(planFilter);
+          
+          masterTasks = result.data || [];
+          masterTasksError = result.error;
+
+        } else {
+          console.log('Unknown user role:', userData.role);
+          progressString = '0/0';
+        }
 
         if (masterTasksError) {
           console.error('Error fetching master tasks:', masterTasksError);

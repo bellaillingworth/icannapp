@@ -161,7 +161,8 @@ function getICANLink(text: string): string | null {
 export default function ChecklistScreen() {
     const [tasksByMonth, setTasksByMonth] = useState<ChecklistData>({});
     const [loading, setLoading] = useState(true);
-  const [currentGrade, setCurrentGrade] = useState<GradeLevel>('9th');
+      const [currentGrade, setCurrentGrade] = useState<GradeLevel>('9th');
+    const [userRole, setUserRole] = useState<string>('Student');
     const [progress, setProgress] = useState(0);
     const [completedTasks, setCompletedTasks] = useState(0);
     const [totalTasks, setTotalTasks] = useState(0);
@@ -239,51 +240,112 @@ export default function ChecklistScreen() {
                 return;
             }
 
-            // Get user's current grade and plan
+            // Get user's current grade, plan, and role
             const { data: profile, error: profileError } = await supabase
                 .from('profiles')
-                .select('grade, post_high_school_plan')
+                .select('grade, post_high_school_plan, role')
                 .eq('id', user.id)
                 .single();
 
             if (profileError) throw profileError;
 
             const currentGrade = profile.grade as GradeLevel;
+            const userRole = profile.role;
             setCurrentGrade(currentGrade);
+            setUserRole(userRole);
 
-            // Determine plan filter based on user's post-high school plan
-            let planFilter = {};
-            switch (profile.post_high_school_plan) {
-                case '4-year college':
-                    planFilter = { four_year: true };
-                    break;
-                case '2-year college':
-                    planFilter = { two_year: true };
-                    break;
-                case 'Apprenticeship':
-                    planFilter = { apprenticeship: true };
-                    break;
-                case 'Not decided':
-                case 'N/A':
-                    planFilter = { undecided: true };
-                    break;
-                default:
-                    planFilter = {};
+            console.log('User role:', userRole);
+            console.log('User grade:', currentGrade);
+            console.log('User plan:', profile.post_high_school_plan);
+
+            let masterTasks: any[] = [];
+            let masterTasksError: any = null;
+
+            // Determine which table to query based on user role
+            if (userRole === 'Student') {
+                // Determine plan filter based on user's post-high school plan
+                let planFilter = {};
+                switch (profile.post_high_school_plan) {
+                    case '4-year college':
+                        planFilter = { four_year: true };
+                        break;
+                    case '2-year college':
+                        planFilter = { two_year: true };
+                        break;
+                    case 'Apprenticeship':
+                        planFilter = { apprenticeship: true };
+                        break;
+                    case 'Not decided':
+                    case 'N/A':
+                        planFilter = { undecided: true };
+                        break;
+                    default:
+                        planFilter = {};
+                }
+
+                // Get master tasks for students
+                const result = await supabase
+                    .from('checklist_master_tasks')
+                    .select('*')
+                    .eq('grade', currentGrade)
+                    .match(planFilter);
+                
+                masterTasks = result.data || [];
+                masterTasksError = result.error;
+
+            } else if (userRole === 'Counselor') {
+                // Get counselor tasks - grade only, no month filtering
+                const result = await supabase
+                    .from('checklist_counselors')
+                    .select('*')
+                    .eq('grade', currentGrade);
+                
+                masterTasks = result.data || [];
+                masterTasksError = result.error;
+
+            } else if (userRole === 'Parent/Guardian') {
+                // Get parent tasks - grade, month, and plan filtering
+                let planFilter = {};
+                switch (profile.post_high_school_plan) {
+                    case '4-year college':
+                        planFilter = { four_year: true };
+                        break;
+                    case '2-year college':
+                        planFilter = { two_year: true };
+                        break;
+                    case 'Apprenticeship':
+                        planFilter = { apprenticeship: true };
+                        break;
+                    case 'Not decided':
+                    case 'N/A':
+                        planFilter = { undecided: true };
+                        break;
+                    default:
+                        planFilter = {};
+                }
+
+                const result = await supabase
+                    .from('checklist_parents')
+                    .select('*')
+                    .eq('grade', currentGrade)
+                    .match(planFilter);
+                
+                masterTasks = result.data || [];
+                masterTasksError = result.error;
+
+            } else {
+                console.log('Unknown user role:', userRole);
+                setTasksByMonth({});
+                setProgress(0);
+                setTotalTasks(0);
+                setCompletedTasks(0);
+                setLoading(false);
+                return;
             }
-
-            // First, get all master tasks for this grade and plan
-            const { data: masterTasks, error: masterTasksError } = await supabase
-                .from('checklist_master_tasks')
-                .select('*')
-                .eq('grade', currentGrade)
-                .match(planFilter);
 
             if (masterTasksError) throw masterTasksError;
 
             console.log('Master tasks found:', masterTasks?.length || 0);
-            console.log('User grade:', currentGrade);
-            console.log('User plan:', profile.post_high_school_plan);
-            console.log('Plan filter:', planFilter);
 
             if (masterTasks && masterTasks.length > 0) {
                 // Get user's completion status for these tasks
@@ -304,78 +366,25 @@ export default function ChecklistScreen() {
                 // Group tasks by month using master task data
                 const tasksByMonth: ChecklistData = {};
                 
-                masterTasks.forEach(masterTask => {
-                    const month = masterTask.month;
-                    if (!tasksByMonth[month]) {
-                        tasksByMonth[month] = [];
-                    }
+                if (userRole === 'Counselor') {
+                    // For counselors, group all tasks under a single "General" month
+                    tasksByMonth['General'] = [];
                     
-                    // Check if user has a completion record for this task
-                    const isCompleted = completionMap.has(masterTask.id) 
-                        ? completionMap.get(masterTask.id) 
-                        : false;
+                    masterTasks.forEach(masterTask => {
+                        // Check if user has a completion record for this task
+                        const isCompleted = completionMap.has(masterTask.id) 
+                            ? completionMap.get(masterTask.id) 
+                            : false;
 
-                    tasksByMonth[month].push({
-                        id: masterTask.id, // Use master task ID as the unique identifier
-                        text: masterTask.task_text, // Always use latest text from master
-                        done: isCompleted,
+                        tasksByMonth['General'].push({
+                            id: masterTask.id,
+                            text: masterTask.task_text,
+                            done: isCompleted,
+                        });
                     });
-                });
-
-                setTasksByMonth(tasksByMonth);
-                
-                // Calculate progress
-                const totalTasks = masterTasks.length;
-                const completedTasks = Array.from(completionMap.values()).filter(Boolean).length;
-                const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-                
-                setProgress(progressPercentage);
-                setTotalTasks(totalTasks);
-                setCompletedTasks(completedTasks);
-                
-                // Check if all tasks are completed
-                checkIfAllTasksCompleted(tasksByMonth);
-            } else {
-                console.log('No master tasks found for grade:', currentGrade, 'with plan filter');
-                
-                // Fallback: Try to get all tasks for this grade without plan filtering
-                console.log('Trying fallback: getting all tasks for grade without plan filter');
-                const { data: fallbackTasks, error: fallbackError } = await supabase
-                    .from('checklist_master_tasks')
-                    .select('*')
-                    .eq('grade', currentGrade);
-
-                if (fallbackError) {
-                    console.error('Fallback query error:', fallbackError);
-                    setTasksByMonth({});
-                    setProgress(0);
-                    setTotalTasks(0);
-                    setCompletedTasks(0);
-                    return;
-                }
-
-                if (fallbackTasks && fallbackTasks.length > 0) {
-                    console.log('Fallback found tasks:', fallbackTasks.length);
-                    
-                    // Get user's completion status for these tasks
-                    const { data: userCompletions, error: completionsError } = await supabase
-                        .from('checklist_items')
-                        .select('master_task_id, is_completed')
-                        .eq('user_id', user.id)
-                        .in('master_task_id', fallbackTasks.map(task => task.id));
-
-                    if (completionsError) throw completionsError;
-
-                    // Create a map of completion status
-                    const completionMap = new Map();
-                    userCompletions?.forEach(item => {
-                        completionMap.set(item.master_task_id, item.is_completed);
-                    });
-
-                    // Group tasks by month using master task data
-                    const tasksByMonth: ChecklistData = {};
-                    
-                    fallbackTasks.forEach(masterTask => {
+                } else {
+                    // For students and parents, group by month
+                    masterTasks.forEach(masterTask => {
                         const month = masterTask.month;
                         if (!tasksByMonth[month]) {
                             tasksByMonth[month] = [];
@@ -392,22 +401,116 @@ export default function ChecklistScreen() {
                             done: isCompleted,
                         });
                     });
+                }
 
-                    setTasksByMonth(tasksByMonth);
-                    
-                    // Calculate progress
-                    const totalTasks = fallbackTasks.length;
-                    const completedTasks = Array.from(completionMap.values()).filter(Boolean).length;
-                    const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-                    
-                    setProgress(progressPercentage);
-                    setTotalTasks(totalTasks);
-                    setCompletedTasks(completedTasks);
-                    
-                    // Check if all tasks are completed
-                    checkIfAllTasksCompleted(tasksByMonth);
+                setTasksByMonth(tasksByMonth);
+                
+                // Calculate progress
+                const totalTasks = masterTasks.length;
+                const completedTasks = Array.from(completionMap.values()).filter(Boolean).length;
+                const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+                
+                setProgress(progressPercentage);
+                setTotalTasks(totalTasks);
+                setCompletedTasks(completedTasks);
+                
+                // Check if all tasks are completed
+                checkIfAllTasksCompleted(tasksByMonth);
+            } else {
+                console.log('No master tasks found for role:', userRole, 'grade:', currentGrade);
+                
+                // Fallback: Try to get all tasks for this grade without plan filtering (for students and parents)
+                if (userRole === 'Student' || userRole === 'Parent/Guardian') {
+                    console.log('Trying fallback: getting all tasks for grade without plan filter');
+                    let fallbackTasks: any[] = [];
+                    let fallbackError: any = null;
+
+                    if (userRole === 'Student') {
+                        const result = await supabase
+                            .from('checklist_master_tasks')
+                            .select('*')
+                            .eq('grade', currentGrade);
+                        fallbackTasks = result.data || [];
+                        fallbackError = result.error;
+                    } else if (userRole === 'Parent/Guardian') {
+                        const result = await supabase
+                            .from('checklist_parents')
+                            .select('*')
+                            .eq('grade', currentGrade);
+                        fallbackTasks = result.data || [];
+                        fallbackError = result.error;
+                    }
+
+                    if (fallbackError) {
+                        console.error('Fallback query error:', fallbackError);
+                        setTasksByMonth({});
+                        setProgress(0);
+                        setTotalTasks(0);
+                        setCompletedTasks(0);
+                        return;
+                    }
+
+                    if (fallbackTasks && fallbackTasks.length > 0) {
+                        console.log('Fallback found tasks:', fallbackTasks.length);
+                        
+                        // Get user's completion status for these tasks
+                        const { data: userCompletions, error: completionsError } = await supabase
+                            .from('checklist_items')
+                            .select('master_task_id, is_completed')
+                            .eq('user_id', user.id)
+                            .in('master_task_id', fallbackTasks.map(task => task.id));
+
+                        if (completionsError) throw completionsError;
+
+                        // Create a map of completion status
+                        const completionMap = new Map();
+                        userCompletions?.forEach(item => {
+                            completionMap.set(item.master_task_id, item.is_completed);
+                        });
+
+                        // Group tasks by month using master task data
+                        const tasksByMonth: ChecklistData = {};
+                        
+                        fallbackTasks.forEach(masterTask => {
+                            const month = masterTask.month;
+                            if (!tasksByMonth[month]) {
+                                tasksByMonth[month] = [];
+                            }
+                            
+                            // Check if user has a completion record for this task
+                            const isCompleted = completionMap.has(masterTask.id) 
+                                ? completionMap.get(masterTask.id) 
+                                : false;
+
+                            tasksByMonth[month].push({
+                                id: masterTask.id,
+                                text: masterTask.task_text,
+                                done: isCompleted,
+                            });
+                        });
+
+                        setTasksByMonth(tasksByMonth);
+                        
+                        // Calculate progress
+                        const totalTasks = fallbackTasks.length;
+                        const completedTasks = Array.from(completionMap.values()).filter(Boolean).length;
+                        const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+                        
+                        setProgress(progressPercentage);
+                        setTotalTasks(totalTasks);
+                        setCompletedTasks(completedTasks);
+                        
+                        // Check if all tasks are completed
+                        checkIfAllTasksCompleted(tasksByMonth);
+                    } else {
+                        console.log('No tasks found even with fallback for grade:', currentGrade);
+                        setTasksByMonth({});
+                        setProgress(0);
+                        setTotalTasks(0);
+                        setCompletedTasks(0);
+                    }
                 } else {
-                    console.log('No tasks found even with fallback for grade:', currentGrade);
+                    // For counselors and parents, no fallback needed
                     setTasksByMonth({});
                     setProgress(0);
                     setTotalTasks(0);
@@ -584,7 +687,12 @@ export default function ChecklistScreen() {
         </ThemedText>
         ) : null}
                 <ThemedText type="title" style={styles.title}>
-            {`${currentGrade} Grade Checklist`}
+            {userRole === 'Counselor' 
+                ? `${currentGrade} Grade Counselor Checklist`
+                : userRole === 'Parent/Guardian'
+                ? `${currentGrade} Grade Parent Checklist`
+                : `${currentGrade} Grade Checklist`
+            }
         </ThemedText>
             <View style={styles.progressContainer}>
                 <ThemedText style={styles.progressText}>
