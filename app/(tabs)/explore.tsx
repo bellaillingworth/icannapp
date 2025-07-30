@@ -3,19 +3,12 @@ import { ThemedView } from '@/components/ThemedView';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, Pressable, StyleSheet, View, Linking } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Image, Pressable, StyleSheet, View, Linking, RefreshControl } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import { supabase } from '../../supabaseClient';
 import { useFocusEffect } from 'expo-router';
 import React from 'react';
-
-export type GradeLevel = '9th' | '10th' | '11th' | '12th' | 'Graduated';
-
-type Task = {
-  id: string; // This will now be the task_id from the database
-  text: string;
-  done: boolean;
-};
+import { GradeLevel, Task } from '@/constants/Checklists';
 
 type ChecklistData = {
     [key: string]: Task[]; // key is month name
@@ -173,8 +166,9 @@ export default function ChecklistScreen() {
     const [completedTasks, setCompletedTasks] = useState(0);
     const [totalTasks, setTotalTasks] = useState(0);
     const [userName, setUserName] = useState('');
-    const [allTasksCompleted, setAllTasksCompleted] = useState(false);
-  const confettiRef = useRef<ConfettiCannon>(null);
+        const [allTasksCompleted, setAllTasksCompleted] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+    const confettiRef = useRef<ConfettiCannon>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
   const subscriptionRef = useRef<any>(null);
@@ -220,6 +214,15 @@ export default function ChecklistScreen() {
     }, [currentGrade, userId])
   );
 
+  // Auto-refresh every 30 seconds to get latest task text changes from master_tasks
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchChecklistProgress();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
     const getOrderedMonths = (tasks: ChecklistData) => {
         const monthOrder = [
             'August', 'September', 'October', 'November', 'December',
@@ -229,73 +232,190 @@ export default function ChecklistScreen() {
     };
 
     const fetchChecklistProgress = async () => {
-        setLoading(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                router.replace('/signin');
+                setLoading(false);
                 return;
             }
 
+            // Get user's current grade and plan
             const { data: profile, error: profileError } = await supabase
                 .from('profiles')
-                .select('grade, full_name')
+                .select('grade, post_high_school_plan')
                 .eq('id', user.id)
                 .single();
 
             if (profileError) throw profileError;
-            setUserName(profile?.full_name || '');
-            const grade = profile?.grade || '9th';
-            setCurrentGrade(grade);
 
-            const { data, error } = await supabase
-                .from('checklist_items')
-                .select(`
-                    id,
-                    task_id,
-                    is_completed,
-                    month,
-                    grade,
-                    master_task_id,
-                    task_text,
-                    checklist_master_tasks (
-                        task_text
-                    )
-                `)
-                .eq('user_id', user.id)
-                .eq('grade', grade);
+            const currentGrade = profile.grade as GradeLevel;
+            setCurrentGrade(currentGrade);
 
-            if (error) {
-                throw error;
+            // Determine plan filter based on user's post-high school plan
+            let planFilter = {};
+            switch (profile.post_high_school_plan) {
+                case '4-year college':
+                    planFilter = { four_year: true };
+                    break;
+                case '2-year college':
+                    planFilter = { two_year: true };
+                    break;
+                case 'Apprenticeship':
+                    planFilter = { apprenticeship: true };
+                    break;
+                case 'Not decided':
+                case 'N/A':
+                    planFilter = { undecided: true };
+                    break;
+                default:
+                    planFilter = {};
             }
 
-            const formattedTasks: ChecklistData = {};
-            data.forEach(item => {
-                const task: Task = {
-                    id: item.task_id, // use unique task_id
-                    text: (item.checklist_master_tasks && typeof item.checklist_master_tasks === 'object' && 'task_text' in item.checklist_master_tasks)
-                      ? String(item.checklist_master_tasks.task_text)
-                      : item.task_text || '',
-                    done: item.is_completed,
-                };
-                if (!formattedTasks[item.month]) {
-                    formattedTasks[item.month] = [];
+            // First, get all master tasks for this grade and plan
+            const { data: masterTasks, error: masterTasksError } = await supabase
+                .from('checklist_master_tasks')
+                .select('*')
+                .eq('grade', currentGrade)
+                .match(planFilter);
+
+            if (masterTasksError) throw masterTasksError;
+
+            console.log('Master tasks found:', masterTasks?.length || 0);
+            console.log('User grade:', currentGrade);
+            console.log('User plan:', profile.post_high_school_plan);
+            console.log('Plan filter:', planFilter);
+
+            if (masterTasks && masterTasks.length > 0) {
+                // Get user's completion status for these tasks
+                const { data: userCompletions, error: completionsError } = await supabase
+                    .from('checklist_items')
+                    .select('master_task_id, is_completed')
+                    .eq('user_id', user.id)
+                    .in('master_task_id', masterTasks.map(task => task.id));
+
+                if (completionsError) throw completionsError;
+
+                // Create a map of completion status
+                const completionMap = new Map();
+                userCompletions?.forEach(item => {
+                    completionMap.set(item.master_task_id, item.is_completed);
+                });
+
+                // Group tasks by month using master task data
+                const tasksByMonth: ChecklistData = {};
+                
+                masterTasks.forEach(masterTask => {
+                    const month = masterTask.month;
+                    if (!tasksByMonth[month]) {
+                        tasksByMonth[month] = [];
+                    }
+                    
+                    // Check if user has a completion record for this task
+                    const isCompleted = completionMap.has(masterTask.id) 
+                        ? completionMap.get(masterTask.id) 
+                        : false;
+
+                    tasksByMonth[month].push({
+                        id: masterTask.id, // Use master task ID as the unique identifier
+                        text: masterTask.task_text, // Always use latest text from master
+                        done: isCompleted,
+                    });
+                });
+
+                setTasksByMonth(tasksByMonth);
+                
+                // Calculate progress
+                const totalTasks = masterTasks.length;
+                const completedTasks = Array.from(completionMap.values()).filter(Boolean).length;
+                const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+                
+                setProgress(progressPercentage);
+                setTotalTasks(totalTasks);
+                setCompletedTasks(completedTasks);
+                
+                // Check if all tasks are completed
+                checkIfAllTasksCompleted(tasksByMonth);
+            } else {
+                console.log('No master tasks found for grade:', currentGrade, 'with plan filter');
+                
+                // Fallback: Try to get all tasks for this grade without plan filtering
+                console.log('Trying fallback: getting all tasks for grade without plan filter');
+                const { data: fallbackTasks, error: fallbackError } = await supabase
+                    .from('checklist_master_tasks')
+                    .select('*')
+                    .eq('grade', currentGrade);
+
+                if (fallbackError) {
+                    console.error('Fallback query error:', fallbackError);
+                    setTasksByMonth({});
+                    setProgress(0);
+                    setTotalTasks(0);
+                    setCompletedTasks(0);
+                    return;
                 }
-                formattedTasks[item.month].push(task);
-            });
 
-            const total = data.length;
-            const completed = data.filter(t => t.is_completed).length;
+                if (fallbackTasks && fallbackTasks.length > 0) {
+                    console.log('Fallback found tasks:', fallbackTasks.length);
+                    
+                    // Get user's completion status for these tasks
+                    const { data: userCompletions, error: completionsError } = await supabase
+                        .from('checklist_items')
+                        .select('master_task_id, is_completed')
+                        .eq('user_id', user.id)
+                        .in('master_task_id', fallbackTasks.map(task => task.id));
 
-            setTasksByMonth(formattedTasks);
-            setTotalTasks(total);
-            setCompletedTasks(completed);
-            setProgress(total > 0 ? (completed / total) : 0);
-            
-            checkIfAllTasksCompleted(formattedTasks);
+                    if (completionsError) throw completionsError;
 
+                    // Create a map of completion status
+                    const completionMap = new Map();
+                    userCompletions?.forEach(item => {
+                        completionMap.set(item.master_task_id, item.is_completed);
+                    });
+
+                    // Group tasks by month using master task data
+                    const tasksByMonth: ChecklistData = {};
+                    
+                    fallbackTasks.forEach(masterTask => {
+                        const month = masterTask.month;
+                        if (!tasksByMonth[month]) {
+                            tasksByMonth[month] = [];
+                        }
+                        
+                        // Check if user has a completion record for this task
+                        const isCompleted = completionMap.has(masterTask.id) 
+                            ? completionMap.get(masterTask.id) 
+                            : false;
+
+                        tasksByMonth[month].push({
+                            id: masterTask.id,
+                            text: masterTask.task_text,
+                            done: isCompleted,
+                        });
+                    });
+
+                    setTasksByMonth(tasksByMonth);
+                    
+                    // Calculate progress
+                    const totalTasks = fallbackTasks.length;
+                    const completedTasks = Array.from(completionMap.values()).filter(Boolean).length;
+                    const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+                    
+                    setProgress(progressPercentage);
+                    setTotalTasks(totalTasks);
+                    setCompletedTasks(completedTasks);
+                    
+                    // Check if all tasks are completed
+                    checkIfAllTasksCompleted(tasksByMonth);
+                } else {
+                    console.log('No tasks found even with fallback for grade:', currentGrade);
+                    setTasksByMonth({});
+                    setProgress(0);
+                    setTotalTasks(0);
+                    setCompletedTasks(0);
+                }
+            }
         } catch (error: any) {
-            Alert.alert('Error', 'Failed to fetch checklist: ' + error.message);
+            console.error('Error fetching checklist progress:', error);
         } finally {
             setLoading(false);
         }
@@ -312,6 +432,13 @@ export default function ChecklistScreen() {
             setAllTasksCompleted(false);
         }
     };
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await fetchChecklistProgress();
+        setRefreshing(false);
+    };
+
 
 
     const toggleTask = async (month: string, taskId: string) => {
@@ -334,33 +461,47 @@ export default function ChecklistScreen() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            const { error } = await supabase
+            // Check if user already has a completion record for this task
+            const { data: existingRecord, error: checkError } = await supabase
                 .from('checklist_items')
-                .update({ is_completed: newDoneStatus })
+                .select('id')
                 .eq('user_id', user.id)
-                .eq('task_id', taskId);
+                .eq('master_task_id', taskId)
+                .single();
 
-            if (error) {
-                throw error;
+            if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+                throw checkError;
             }
 
-            // --- Update checklist_progress in profiles table ---
-            // Fetch all checklist items for this user and current grade
-            const { data: items, error: itemsError } = await supabase
-                .from('checklist_items')
-                .select('is_completed')
-                .eq('user_id', user.id)
-                .eq('grade', currentGrade);
-            if (itemsError) throw itemsError;
-            const total = items.length;
-            const completed = items.filter((item: any) => item.is_completed).length;
-            const progressString = `${completed}/${total}`;
+            if (existingRecord) {
+                // Update existing record
+                const { error } = await supabase
+                    .from('checklist_items')
+                    .update({ is_completed: newDoneStatus })
+                    .eq('id', existingRecord.id);
+
+                if (error) throw error;
+            } else {
+                // Create new completion record
+                const { error } = await supabase
+                    .from('checklist_items')
+                    .insert({
+                        user_id: user.id,
+                        master_task_id: taskId,
+                        is_completed: newDoneStatus,
+                    });
+
+                if (error) throw error;
+            }
+
+            // Update checklist_progress in profiles table
+            const progressString = `${newCompletedCount}/${totalTasks}`;
             const { error: progressError } = await supabase
                 .from('profiles')
                 .update({ checklist_progress: progressString })
                 .eq('id', user.id);
             if (progressError) throw progressError;
-            // --- End update checklist_progress ---
+
         } catch (error: any) {
             // Revert UI on failure
             updatedTasksByMonth[month][taskIndex] = { ...task, done: !newDoneStatus };
@@ -442,9 +583,9 @@ export default function ChecklistScreen() {
                 {`Welcome, ${userName}!`}
         </ThemedText>
         ) : null}
-        <ThemedText type="title" style={styles.title}>
-                {`${currentGrade} Grade Checklist`}
-            </ThemedText>
+                <ThemedText type="title" style={styles.title}>
+            {`${currentGrade} Grade Checklist`}
+        </ThemedText>
             <View style={styles.progressContainer}>
                 <ThemedText style={styles.progressText}>
                     {`Progress: ${completedTasks}/${totalTasks}`}
@@ -456,6 +597,14 @@ export default function ChecklistScreen() {
         <FlatList
                 data={orderedMonths}
           keyExtractor={(month) => month}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#0a7ea4']}
+              tintColor="#0a7ea4"
+            />
+          }
           renderItem={({ item: month }) => (
                     <View style={styles.monthContainer}>
                         <ThemedText type="subtitle" style={styles.monthHeader}>{month}</ThemedText>
@@ -499,10 +648,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
         marginBottom: 20,
   },
-    title: {
-    textAlign: 'center',
-    marginBottom: 10,
-  },
+        title: {
+        textAlign: 'center',
+        marginBottom: 10,
+    },
     progressContainer: {
     paddingHorizontal: 20,
     marginBottom: 20,

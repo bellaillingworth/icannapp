@@ -1,12 +1,12 @@
-export type GradeLevel = '9th' | '10th' | '11th' | '12th';
+export type GradeLevel = '9th' | '10th' | '11th' | '12th' | 'Graduated';
 
-type Task = {
+export type Task = {
   id: string;
   text: string;
   done: boolean;
 };
 
-type ChecklistData = {
+export type ChecklistData = {
   [key in GradeLevel]: {
     [key:string]: Task[]; // key is month name
   };
@@ -19,7 +19,7 @@ export const checklists: ChecklistData = {
       { id: '2', text: 'Attend Freshman Transition event', done: false },
       { id: '3', text: 'Sign up for ICAN Tip of the Week', done: false },
       { id: '4', text: 'Use a planner', done: false },
-      { id: '5', text: 'Talk to adults about their careers', done: false },
+      { id: '5', text: 'Talk to adults about their careers!!', done: false },
     ],
     'September': [
       { id: '1', text: 'Join extracurriculars and track them with an activities resume', done: false },
@@ -278,5 +278,19 @@ export const checklists: ChecklistData = {
       { id: '2', text: 'Review your budget', done: false },
       { id: '3', 'text': 'Get ready for college!', done: false },
     ],
+  },
+  'Graduated': {
+    'August': [],
+    'September': [],
+    'October': [],
+    'November': [],
+    'December': [],
+    'January': [],
+    'February': [],
+    'March': [],
+    'April': [],
+    'May': [],
+    'June': [],
+    'July': [],
   }
 }; 

@@ -5,8 +5,8 @@ import { supabase } from '../supabaseClient';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { GradeLevel } from '@/constants/Checklists';
 
-type GradeLevel = '9th' | '10th' | '11th' | '12th';
 type GraduationYear = '2026' | '2027' | '2028' | '2029' | 'N/A';
 type PostHighSchoolPlan = '2-year college' | '4-year college' | 'Not decided' | 'Apprenticeship' | 'N/A';
 

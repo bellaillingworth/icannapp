@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Image, Pressable, StyleSheet, TextInput, View, ActivityIndicator, ScrollView, Modal } from 'react-native';
 import { supabase } from '../../supabaseClient';
 import { getCurrentGrade } from './explore';
+import { GradeLevel } from '@/constants/Checklists';
 
 type UserRole = 'Student' | 'Parent/Guardian' | 'Counselor';
 type PostHighSchoolPlan = '2-year college' | '4-year college' | 'Not decided' | 'Apprenticeship' | 'N/A';
@@ -150,18 +151,71 @@ export default function ProfileScreen() {
       
       if (error) throw error;
 
-      // If the grade changed, reset checklist_progress to 0/total for the new grade
+      // If the grade changed, create new checklist items for the new grade
       let progressString = '';
       if (previousGrade !== grade) {
-        // Fetch all checklist items for this user and new grade
-        const { data: items, error: itemsError } = await supabase
+        // First, delete existing checklist items for the old grade
+        const { error: deleteError } = await supabase
           .from('checklist_items')
-          .select('id')
+          .delete()
           .eq('user_id', user.id)
-          .eq('grade', grade);
-        if (itemsError) throw itemsError;
-        const total = items.length;
-        progressString = `0/${total}`;
+          .eq('grade', previousGrade);
+        if (deleteError) throw deleteError;
+
+        // Determine plan filter based on user's college plan
+        let planFilter = {};
+        switch (userData.collegePlan) {
+          case '4-year college':
+            planFilter = { four_year: true };
+            break;
+          case '2-year college':
+            planFilter = { two_year: true };
+            break;
+          case 'Apprenticeship':
+            planFilter = { apprenticeship: true };
+            break;
+          case 'Not decided':
+          case 'N/A':
+            planFilter = { undecided: true };
+            break;
+          default:
+            planFilter = {};
+        }
+
+        // Fetch master tasks for the new grade from Supabase
+        const { data: masterTasks, error: masterTasksError } = await supabase
+          .from('checklist_master_tasks')
+          .select('*')
+          .eq('grade', grade)
+          .match(planFilter);
+
+        if (masterTasksError) {
+          console.error('Error fetching master tasks:', masterTasksError);
+          throw masterTasksError;
+        }
+
+        if (masterTasks && masterTasks.length > 0) {
+          // Create reference records for the new grade
+          const allTasks: any[] = [];
+          masterTasks.forEach((masterTask) => {
+            allTasks.push({
+              user_id: user.id,
+              master_task_id: masterTask.id,
+              is_completed: false,
+            });
+          });
+
+          if (allTasks.length > 0) {
+            const { error: insertError } = await supabase
+              .from('checklist_items')
+              .insert(allTasks);
+            if (insertError) throw insertError;
+          }
+
+          progressString = `0/${allTasks.length}`;
+        } else {
+          progressString = '0/0'; // No master tasks found for the new grade
+        }
       } else {
         // If grade didn't change, recalculate as before
         const { data: items, error: itemsError } = await supabase
