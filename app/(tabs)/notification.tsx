@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FlatList, StyleSheet, Pressable, Linking, View } from 'react-native';
+import { FlatList, StyleSheet, Pressable, Linking, View, RefreshControl } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { supabase } from '@/supabaseClient';
@@ -16,6 +16,7 @@ interface Announcement {
 
 export default function NotificationScreen() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const fetchAnnouncements = async () => {
@@ -25,8 +26,42 @@ export default function NotificationScreen() {
         .order('created_at', { ascending: false });
       if (!error && data) setAnnouncements(data);
     };
+
+    // Initial fetch
     fetchAnnouncements();
+
+    // Set up real-time subscription
+    const subscription = supabase
+      .channel('announcements_notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'announcements'
+        },
+        () => {
+          // Refetch announcements when any change occurs
+          fetchAnnouncements();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    const { data, error } = await supabase
+      .from('announcements')
+      .select('id, content, created_at, category, link')
+      .order('created_at', { ascending: false });
+    if (!error && data) setAnnouncements(data);
+    setRefreshing(false);
+  };
 
   const renderNotification = ({ item }: { item: Announcement }) => (
     <ThemedView style={styles.notificationCard}>
@@ -66,6 +101,14 @@ export default function NotificationScreen() {
         renderItem={renderNotification}
         ListEmptyComponent={<ThemedText>No notifications yet.</ThemedText>}
         contentContainerStyle={{ paddingBottom: 32 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#0a7ea4']}
+            tintColor="#0a7ea4"
+          />
+        }
       />
     </ThemedView>
   );

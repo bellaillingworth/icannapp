@@ -9,7 +9,7 @@ const EXAMPLE_ANNOUNCEMENTS = [
 ];
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const BASE_SPEED = 60; // pixels per second
+const BASE_SPEED = 50; // pixels per second - slower for better readability
 
 export default function AnnouncementSlider() {
   const [announcements, setAnnouncements] = useState<string[]>([]);
@@ -26,16 +26,40 @@ export default function AnnouncementSlider() {
         setAnnouncements(EXAMPLE_ANNOUNCEMENTS);
       }
     };
+
+    // Initial fetch
     fetchAnnouncements();
+
+    // Set up real-time subscription
+    const subscription = supabase
+      .channel('announcements_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'announcements'
+        },
+        () => {
+          // Refetch announcements when any change occurs
+          fetchAnnouncements();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
     if (announcements.length === 0 || textWidth === 0) return;
     translateX.setValue(SCREEN_WIDTH);
-    const distance = SCREEN_WIDTH + textWidth;
+    const distance = SCREEN_WIDTH + textWidth + 32; // Add extra distance for padding
     const duration = (distance / BASE_SPEED) * 1000; // ms
     Animated.timing(translateX, {
-      toValue: -textWidth,
+      toValue: -(textWidth + 32), // Move text completely off-screen including padding
       duration,
       easing: Easing.linear,
       useNativeDriver: true,
@@ -76,14 +100,14 @@ const styles = StyleSheet.create({
   marqueeWrapper: {
     width: '100%',
     overflow: 'hidden',
-    minHeight: 30,
+    height: 30,
     justifyContent: 'center',
     alignItems: 'flex-start',
-    paddingHorizontal: 16,
   },
   announcementText: {
     color: '#333',
     fontWeight: 'bold',
     fontSize: 16,
+    paddingHorizontal: 16,
   },
 }); 

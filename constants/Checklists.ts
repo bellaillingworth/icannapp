@@ -19,7 +19,7 @@ export const checklists: ChecklistData = {
       { id: '2', text: 'Attend Freshman Transition event', done: false },
       { id: '3', text: 'Sign up for ICAN Tip of the Week', done: false },
       { id: '4', text: 'Use a planner', done: false },
-      { id: '5', text: 'Talk to adults about their careers!!', done: false },
+      { id: '5', text: 'Talk to adults about their careers', done: false },
     ],
     'September': [
       { id: '1', text: 'Join extracurriculars and track them with an activities resume', done: false },
