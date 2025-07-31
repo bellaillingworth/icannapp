@@ -25,7 +25,7 @@ const ResourceCard = ({ title, description, icon, route }: { title: string; desc
         <ThemedText type="subtitle" style={styles.cardTitle}>{title}</ThemedText>
         <ThemedText style={styles.cardDescription}>{description}</ThemedText>
       </ThemedView>
-      <Ionicons name="chevron-forward" size={24} color="#0a7ea4" />
+      <Ionicons name="chevron-forward" size={24} color="#007dc3" />
     </Pressable>
   );
 };
@@ -33,7 +33,7 @@ const ResourceCard = ({ title, description, icon, route }: { title: string; desc
 export default function HomeScreen() {
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
+      headerBackgroundColor={{ light: '#007dc3', dark: '#1D3D47' }}
       headerImage={
         <Image
           source={require('@/assets/images/icanlogo.png')}
@@ -75,7 +75,7 @@ export default function HomeScreen() {
       <ThemedView style={styles.contactSection}>
         <ThemedText type="subtitle" style={styles.sectionTitle}>Need Help?</ThemedText>
         <ThemedText style={styles.contactText}>
-          Schedule a FREE planning session with an ICAN Advisor at ICANsucceed.org/apt
+          Schedule a <ThemedText style={{ fontWeight: 'bold', color: '#007dc3' }}>FREE</ThemedText> planning session, virtual or in-person, with an ICAN Advisor
         </ThemedText>
         <Pressable
           style={styles.contactButton}
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   contactButton: {
-    backgroundColor: '#0a7ea4',
+    backgroundColor: '#9b5ba4',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',

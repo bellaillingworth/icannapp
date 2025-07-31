@@ -43,7 +43,7 @@ export default function NotificationScreen() {
               style={styles.linkContainer}
               onPress={() => Linking.openURL(item.link!)}
             >
-              <ThemedText style={styles.linkText}>View More</ThemedText>
+              <ThemedText style={styles.linkText}>Schedule Now</ThemedText>
               <Ionicons name="open-outline" size={16} color="#007BFF" />
             </Pressable>
           )}
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   linkText: {
-    color: '#007BFF',
+    color: '#9b5ba4',
     marginRight: 5,
     fontSize: 15,
     fontWeight: '600',
