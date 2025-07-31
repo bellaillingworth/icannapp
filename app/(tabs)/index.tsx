@@ -25,7 +25,7 @@ const ResourceCard = ({ title, description, icon, route }: { title: string; desc
         <ThemedText type="subtitle" style={styles.cardTitle}>{title}</ThemedText>
         <ThemedText style={styles.cardDescription}>{description}</ThemedText>
       </ThemedView>
-      <Ionicons name="chevron-forward" size={24} color="#0a7ea4" />
+      <Ionicons name="chevron-forward" size={24} color="#A5D068" />
     </Pressable>
   );
 };
@@ -75,8 +75,7 @@ export default function HomeScreen() {
       <ThemedView style={styles.contactSection}>
         <ThemedText type="subtitle" style={styles.sectionTitle}>Need Help?</ThemedText>
         <ThemedText style={styles.contactText}>
-          Schedule a <ThemedText style={{ fontWeight: 'bold', color: '#007dc3' }}>FREE</ThemedText> planning session, virtual or in-person, with an ICAN Advisor
-        </ThemedText>
+        Work with an ICAN advisor to map our your future. Schedule a <ThemedText style={{ fontWeight: 'bold', color: '#007dc3' }}>FREE</ThemedText> virtual or in-person planning session        </ThemedText>
         <Pressable
           style={styles.contactButton}
           onPress={() => Linking.openURL('https://www.icansucceed.org/apt')}
@@ -105,7 +104,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginBottom: 16,
-    color: '#0a7ea4',
+    color: '#007dc3',
   },
   card: {
     flexDirection: 'row',
