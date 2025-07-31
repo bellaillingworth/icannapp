@@ -78,7 +78,6 @@ export default function AnnouncementSlider() {
       <View style={styles.marqueeWrapper}>
         <Animated.Text
           style={[styles.announcementText, { transform: [{ translateX }] }]}
-          numberOfLines={1}
           onLayout={e => setTextWidth(e.nativeEvent.layout.width)}
         >
           {announcements[currentIndex]}
@@ -100,7 +99,7 @@ const styles = StyleSheet.create({
   marqueeWrapper: {
     width: '100%',
     overflow: 'hidden',
-    height: 30,
+    height: 50,
     justifyContent: 'center',
     alignItems: 'flex-start',
   },
