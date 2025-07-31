@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import React from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Image } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -122,6 +122,32 @@ export default function FinancialAidScreen() {
                 • You can also speak to your school's financial aid office
               </ThemedText>
             </ThemedView>
+             <ThemedView style={styles.step}>
+              <ThemedText type="subtitle" style={styles.stepTitle}>ICAN's Financial Aid Guide</ThemedText>
+              <ThemedText style={styles.text}>
+                • {' '}
+                  <ThemedText
+                  style={{ color: '#9b5ba4', textDecorationLine: 'underline' }}
+                  onPress={() => Linking.openURL('https://www.icansucceed.org/media/cms/ICANFinancialAidGuide28101129_272DCD3D3B383.pdf')}
+                >
+                  Download the ICAN guide on the financial aid process              
+                </ThemedText>
+                {' '} {'\n'}
+                • It contains a complete overview with detailed steps, tips, and resources to help you navigate the financial aid process
+              </ThemedText>
+            </ThemedView>
+          </ThemedView>
+
+          <ThemedView style={styles.logoContainer}>
+            <Pressable
+              onPress={() => Linking.openURL('https://www.icansucceed.org/media/cms/ICANFinancialAidGuide28101129_272DCD3D3B383.pdf')}
+            >
+         <Image
+            source={require('@/assets/images/FAN Cover.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+            </Pressable>
           </ThemedView>
 
           <ThemedView style={styles.buttonContainer}>
@@ -169,6 +195,14 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 16,
     lineHeight: 24,
+      },
+  logoContainer: {
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  logo: {
+    width: 300,
+    height: 220,
   },
   buttonContainer: {
     marginTop: 24,
