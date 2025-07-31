@@ -66,7 +66,7 @@ export default function AnnouncementSlider() {
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    backgroundColor: '#ffe066',
+    backgroundColor: '#9b5ba4',
     paddingVertical: 8,
     alignItems: 'center',
     marginBottom: 12,
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   announcementText: {
-    color: '#333',
+    color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
   },
