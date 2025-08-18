@@ -16,7 +16,7 @@ export default function CollegePlanningScreen() {
           <ThemedView style={styles.section}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>Why It Matters</ThemedText>
             <ThemedText style={styles.text}>
-              If your future career requires college, it's important to plan ahead. College is more than just classes—it's a pathway to your goals, and ICAN is here to support you every step of the way.
+              If your future career requires college, it&apos;s important to plan ahead. College is more than just classes—it&apos;s a pathway to your goals, and ICAN is here to support you every step of the way.
             </ThemedText>
           </ThemedView>
 

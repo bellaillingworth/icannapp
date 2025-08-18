@@ -5,7 +5,6 @@ import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, TextInput, View
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { supabase } from '@/supabaseClient';
-import { Session } from '@supabase/supabase-js';
 import { GradeLevel, checklists } from '@/constants/Checklists';
 
 type UserRole = 'Student' | 'Parent/Guardian' | 'Counselor';
@@ -116,7 +115,7 @@ export default function PreferencesScreen() {
 
       // If no items exist, create and insert them
       if (!existingItems || existingItems.length === 0) {
-        console.log('No existing checklist items found. Creating reference records...');
+
 
         // Determine plan filter based on user's post-high school plan
         let planFilter = {};
@@ -194,7 +193,7 @@ export default function PreferencesScreen() {
           masterTasksError = result.error;
 
         } else {
-          console.log('Unknown user role:', selectedRole);
+  
           return;
         }
 
@@ -223,13 +222,13 @@ export default function PreferencesScreen() {
               console.error('Error inserting checklist items:', insertError);
               throw insertError;
             }
-            console.log('Successfully created reference records for', allTasks.length, 'tasks for role:', selectedRole);
+    
           }
         } else {
-          console.log('No master tasks found for role:', selectedRole, 'grade:', selectedGrade);
+  
         }
       } else {
-        console.log('Checklist items already exist for this user.');
+
       }
 
       router.push('/(tabs)/explore');

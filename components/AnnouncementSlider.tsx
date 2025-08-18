@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
+import { View, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
 import { supabase } from '@/supabaseClient';
 
 const EXAMPLE_ANNOUNCEMENTS = [
@@ -45,7 +45,7 @@ export default function AnnouncementSlider() {
       }
     });
     return () => translateX.stopAnimation();
-  }, [announcements, currentIndex, textWidth]);
+  }, [announcements, currentIndex, textWidth, translateX]);
 
   if (announcements.length === 0) return null;
 

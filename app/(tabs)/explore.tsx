@@ -1,13 +1,11 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, Pressable, StyleSheet, View, Linking, RefreshControl } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import { supabase } from '../../supabaseClient';
 import { useFocusEffect } from 'expo-router';
-import React from 'react';
 import { GradeLevel, Task } from '@/constants/Checklists';
 
 type ChecklistData = {
@@ -166,7 +164,7 @@ export default function ChecklistScreen() {
     const [progress, setProgress] = useState(0);
     const [completedTasks, setCompletedTasks] = useState(0);
     const [totalTasks, setTotalTasks] = useState(0);
-    const [userName, setUserName] = useState('');
+    const [userName] = useState('');
         const [allTasksCompleted, setAllTasksCompleted] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const confettiRef = useRef<ConfettiCannon>(null);
@@ -215,14 +213,7 @@ export default function ChecklistScreen() {
     }, [currentGrade, userId])
   );
 
-  // Auto-refresh every 30 seconds to get latest task text changes from master_tasks
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchChecklistProgress();
-    }, 30000); // 30 seconds
 
-    return () => clearInterval(interval);
-  }, []);
 
     const getOrderedMonths = (tasks: ChecklistData) => {
         const monthOrder = [
@@ -254,9 +245,7 @@ export default function ChecklistScreen() {
             setCurrentGrade(currentGrade);
             setUserRole(userRole);
 
-            console.log('User role:', userRole);
-            console.log('User grade:', currentGrade);
-            console.log('User plan:', profile.post_high_school_plan);
+
 
             let masterTasks: any[] = [];
             let masterTasksError: any = null;
@@ -334,7 +323,7 @@ export default function ChecklistScreen() {
                 masterTasksError = result.error;
 
             } else {
-                console.log('Unknown user role:', userRole);
+    
                 setTasksByMonth({});
                 setProgress(0);
                 setTotalTasks(0);
@@ -345,7 +334,7 @@ export default function ChecklistScreen() {
 
             if (masterTasksError) throw masterTasksError;
 
-            console.log('Master tasks found:', masterTasks?.length || 0);
+
 
             if (masterTasks && masterTasks.length > 0) {
                 // Get user's completion status for these tasks
@@ -417,11 +406,11 @@ export default function ChecklistScreen() {
                 // Check if all tasks are completed
                 checkIfAllTasksCompleted(tasksByMonth);
             } else {
-                console.log('No master tasks found for role:', userRole, 'grade:', currentGrade);
+
                 
                 // Fallback: Try to get all tasks for this grade without plan filtering (for students and parents)
                 if (userRole === 'Student' || userRole === 'Parent/Guardian') {
-                    console.log('Trying fallback: getting all tasks for grade without plan filter');
+
                     let fallbackTasks: any[] = [];
                     let fallbackError: any = null;
 
@@ -451,7 +440,7 @@ export default function ChecklistScreen() {
                     }
 
                     if (fallbackTasks && fallbackTasks.length > 0) {
-                        console.log('Fallback found tasks:', fallbackTasks.length);
+
                         
                         // Get user's completion status for these tasks
                         const { data: userCompletions, error: completionsError } = await supabase
@@ -503,7 +492,7 @@ export default function ChecklistScreen() {
                         // Check if all tasks are completed
                         checkIfAllTasksCompleted(tasksByMonth);
                     } else {
-                        console.log('No tasks found even with fallback for grade:', currentGrade);
+        
                         setTasksByMonth({});
                         setProgress(0);
                         setTotalTasks(0);
@@ -542,7 +531,14 @@ export default function ChecklistScreen() {
         setRefreshing(false);
     };
 
+    // Auto-refresh every 30 seconds to get latest task text changes from master_tasks
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchChecklistProgress();
+        }, 30000); // 30 seconds
 
+        return () => clearInterval(interval);
+    }, []);
 
     const toggleTask = async (month: string, taskId: string) => {
         const updatedTasksByMonth = { ...tasksByMonth };
@@ -629,7 +625,7 @@ export default function ChecklistScreen() {
         return (
             <ThemedView style={styles.centered}>
                 <ThemedText type="title">Congratulations, Graduate!</ThemedText>
-                <ThemedText>You've completed your high school journey.</ThemedText>
+                <ThemedText>You&apos;ve completed your high school journey.</ThemedText>
             </ThemedView>
         );
     }

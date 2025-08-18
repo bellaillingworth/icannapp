@@ -1,17 +1,21 @@
 {
   "expo": {
-    "name": "testApp1",
-    "slug": "testApp1",
+    "name": "ICAN",
+    "slug": "ican-college-planning",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "testapp1",
+    "scheme": "icanapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ican.collegeplanning",
+      "buildNumber": "1"
     },
     "android": {
+      "package": "com.ican.collegeplanning",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -37,6 +41,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id-here"
+      }
     }
   }
 }

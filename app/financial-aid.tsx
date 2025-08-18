@@ -16,7 +16,7 @@ export default function FinancialAidScreen() {
           <ThemedView style={styles.section}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>Why It Matters</ThemedText>
             <ThemedText style={styles.text}>
-              College is a big investment, but it's also one of the best ways to increase your lifetime earnings. ICAN helps you make smart, affordable choices about how to pay for your education.
+              College is a big investment, but it&apos;s also one of the best ways to increase your lifetime earnings. ICAN helps you make smart, affordable choices about how to pay for your education.
             </ThemedText>
           </ThemedView>
 
@@ -26,8 +26,8 @@ export default function FinancialAidScreen() {
             <ThemedView style={styles.step}>
               <ThemedText type="subtitle" style={styles.stepTitle}>Set a Budget</ThemedText>
               <ThemedText style={styles.text}>
-                • Know your career's starting salary{'\n'}
-                • Don't borrow more than what you'll earn in your first year{'\n'}
+                • Know your career&apos;s starting salary{'\n'}
+                • Don&apos;t borrow more than what you&apos;ll earn in your first year{'\n'}
                 • Consider savings, scholarships, and costs at different schools
               </ThemedText>
             </ThemedView>
