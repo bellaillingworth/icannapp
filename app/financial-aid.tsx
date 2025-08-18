@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import React from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Image } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -11,17 +11,19 @@ export default function FinancialAidScreen() {
       <Stack.Screen options={{ title: 'Financial Aid' }} />
       <ScrollView style={styles.container}>
         <ThemedView style={styles.content}>
-          <ThemedText type="title" style={styles.title}>💰 ICAN Financial Aid – Quick Guide</ThemedText>
+          <ThemedText type="title" style={styles.title}>💰 Financial Aid</ThemedText>
           
           <ThemedView style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>Why It Matters</ThemedText>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>An Investment in Yourself</ThemedText>
             <ThemedText style={styles.text}>
-              College is a big investment, but it&apos;s also one of the best ways to increase your lifetime earnings. ICAN helps you make smart, affordable choices about how to pay for your education.
+              A college education is a big commitment, but it&apos;s also an investment in your future. Studies show that adults with a bachelor&apos;s degree earn $1.2 million more than the average high school diploma holder. {'\n'}
+              {'\n'}
+              ICAN can help you make informed decisions about how to reach your career goals and cover the costs to get there.
             </ThemedText>
           </ThemedView>
 
           <ThemedView style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>📝 Steps to Manage Financial Aid</ThemedText>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>📝 The Financial Aid Process</ThemedText>
             
             <ThemedView style={styles.step}>
               <ThemedText type="subtitle" style={styles.stepTitle}>Set a Budget</ThemedText>
@@ -35,26 +37,64 @@ export default function FinancialAidScreen() {
             <ThemedView style={styles.step}>
               <ThemedText type="subtitle" style={styles.stepTitle}>Understand Aid Types</ThemedText>
               <ThemedText style={styles.text}>
-                • Grants: Free money based on need{'\n'}
-                • Scholarships: Free money based on merit or need{'\n'}
-                • Work-Study: On-campus jobs while attending school{'\n'}
-                • Student Loans: Must be paid back with interest after graduation
+                • <ThemedText style={{ fontWeight: 'bold', color: '#007dc3' }}>Grants:</ThemedText> Free money based on need{'\n'}
+                • <ThemedText style={{ fontWeight: 'bold', color: '#007dc3' }}>Scholarships:</ThemedText> Free money based on merit or need{'\n'}
+                • <ThemedText style={{ fontWeight: 'bold', color: '#007dc3' }}>Work-Study:</ThemedText> Free On-campus jobs while attending school{'\n'}
+                • <ThemedText style={{ fontWeight: 'bold', color: '#007dc3' }}>Student Loans:</ThemedText>Free Must be paid back with interest after graduationn
               </ThemedText>
             </ThemedView>
 
             <ThemedView style={styles.step}>
-              <ThemedText type="subtitle" style={styles.stepTitle}>Create Your FSA ID</ThemedText>
+              <ThemedText type="subtitle" style={styles.stepTitle}>Create Your StudentAid.gov Account</ThemedText>
               <ThemedText style={styles.text}>
-                • This is your login to apply for federal aid at StudentAid.gov
+                • Also known as the FSA ID, this is your login to apply for federal aid on the FAFSA{'\n'}
+                • Setup your account at{' '}
+                <ThemedText
+                  style={{ color: '#9b5ba4', textDecorationLine: 'underline' }}
+                  onPress={() => Linking.openURL('https://studentaid.gov/fsa-id/create-account/launch')}
+                >
+                  studentaid.gov
+                                  </ThemedText>
+                {' '} {'\n'}
+                 • View a video and learn about the entire process at{" "}
+                <ThemedText
+                  style={{ color: '#9b5ba4', textDecorationLine: 'underline' }}
+                  onPress={() => Linking.openURL('https://www.icansucceed.org/studentaidaccount')}
+                >
+                  ICANsucceed.org/studentaidaccount
+                </ThemedText>
+                {' '} {'\n'}
               </ThemedText>
             </ThemedView>
 
             <ThemedView style={styles.step}>
               <ThemedText type="subtitle" style={styles.stepTitle}>Apply for Financial Aid</ThemedText>
               <ThemedText style={styles.text}>
-                • Fill out the FAFSA (Free Application for Federal Student Aid){'\n'}
-                • Apply for state and school-based scholarships and grants{'\n'}
-                • Look for private scholarships too
+                • Fill out the FAFSA (Free Application for Federal Student Aid) {' '}
+                <ThemedText
+                  style={{ color: '#9b5ba4', textDecorationLine: 'underline' }}
+                  onPress={() => Linking.openURL('https://www.icansucceed.org/apt')}
+                >
+                  Schedule a Free FAFSA appointment, virtually or in-person with ICAN
+                </ThemedText>
+                {' '} {'\n'}
+                • {' '}
+                <ThemedText
+                  style={{ color: '#9b5ba4', textDecorationLine: 'underline' }}
+                  onPress={() => Linking.openURL('https://educate.iowa.gov/higher-ed/financial-aid/ifaa')}
+                >
+                  Apply for state of Iowa aid
+                </ThemedText>
+                {' '} {'\n'}
+                • Apply for school-based scholarships and grants{'\n'}
+                • Search for private scholarships in the {' '}
+                <ThemedText
+                  style={{ color: '#9b5ba4', textDecorationLine: 'underline' }}
+                  onPress={() => Linking.openURL('https://www.step1scholarships.org/')}
+                >
+                  ICAN Scholarship Database
+                </ThemedText>
+                {' '} {'\n'}
               </ThemedText>
             </ThemedView>
 
@@ -69,10 +109,45 @@ export default function FinancialAidScreen() {
             <ThemedView style={styles.step}>
               <ThemedText type="subtitle" style={styles.stepTitle}>Ask for Help</ThemedText>
               <ThemedText style={styles.text}>
-                • Meet with an ICAN advisor or financial aid officer{'\n'}
+                • Meet with an ICAN advisor - {' '}
+                <ThemedText
+                  style={{ color: '#9b5ba4', textDecorationLine: 'underline' }}
+                  onPress={() => Linking.openURL('https://www.icansucceed.org/apt')}
+                >
+                  Click here to schedule
+                </ThemedText>
+                {' '} {'\n'}
                 • Ask about options, concerns, and how to fill funding gaps
+                {' '} {'\n'}
+                • You can also speak to your school's financial aid office
               </ThemedText>
             </ThemedView>
+             <ThemedView style={styles.step}>
+              <ThemedText type="subtitle" style={styles.stepTitle}>ICAN's Financial Aid Guide</ThemedText>
+              <ThemedText style={styles.text}>
+                • {' '}
+                  <ThemedText
+                  style={{ color: '#9b5ba4', textDecorationLine: 'underline' }}
+                  onPress={() => Linking.openURL('https://www.icansucceed.org/media/cms/ICANFinancialAidGuide28101129_272DCD3D3B383.pdf')}
+                >
+                  Download the ICAN guide on the financial aid process              
+                </ThemedText>
+                {' '} {'\n'}
+                • It contains a complete overview with detailed steps, tips, and resources to help you navigate the financial aid process
+              </ThemedText>
+            </ThemedView>
+          </ThemedView>
+
+          <ThemedView style={styles.logoContainer}>
+            <Pressable
+              onPress={() => Linking.openURL('https://www.icansucceed.org/media/cms/ICANFinancialAidGuide28101129_272DCD3D3B383.pdf')}
+            >
+         <Image
+            source={require('@/assets/images/FAN Cover.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+            </Pressable>
           </ThemedView>
 
           <ThemedView style={styles.buttonContainer}>
@@ -105,7 +180,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginBottom: 12,
-    color: '#0a7ea4',
+    color: '#007dc3',
   },
   step: {
     marginBottom: 20,
@@ -115,11 +190,19 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     marginBottom: 8,
-    color: '#0a7ea4',
+    color: '#007dc3',
   },
   text: {
     fontSize: 16,
     lineHeight: 24,
+      },
+  logoContainer: {
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  logo: {
+    width: 300,
+    height: 220,
   },
   buttonContainer: {
     marginTop: 24,
@@ -127,7 +210,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   button: {
-    backgroundColor: '#0a7ea4',
+    backgroundColor: '#9b5ba4',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
