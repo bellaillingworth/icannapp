@@ -61,7 +61,7 @@ export default function RootLayout() {
         }
         });
       }
-  }, [session, segments, loaded]);
+  }, [session, segments, loaded, router]);
 
   if (!loaded) {
     return null;

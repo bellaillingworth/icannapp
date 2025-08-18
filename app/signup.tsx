@@ -1,51 +1,10 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, TextInput, ActivityIndicator, View, Modal } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
 import { supabase } from '../supabaseClient';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { GradeLevel } from '@/constants/Checklists';
-
-type GraduationYear = '2026' | '2027' | '2028' | '2029' | 'N/A';
-type PostHighSchoolPlan = '2-year college' | '4-year college' | 'Not decided' | 'Apprenticeship' | 'N/A';
-
-function Dropdown({ label, value, options, onSelect }: { label: string; value: string; options: string[]; onSelect: (value: string) => void; }) {
-  const [isOpen, setIsOpen] = useState(false);
-  return (
-    <View style={{ marginBottom: 15 }}>
-      <ThemedText style={styles.label}>{label}</ThemedText>
-      <Pressable style={styles.input} onPress={() => setIsOpen(true)}>
-        <ThemedText>{value}</ThemedText>
-      </Pressable>
-      <Modal
-        visible={isOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsOpen(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setIsOpen(false)}>
-          <View style={styles.modalContent}>
-            <ScrollView>
-              {options.map((option) => (
-                <Pressable
-                  key={option}
-                  style={styles.optionButton}
-                  onPress={() => {
-                    onSelect(option);
-                    setIsOpen(false);
-                  }}
-                >
-                  <ThemedText>{option}</ThemedText>
-                </Pressable>
-              ))}
-            </ScrollView>
-          </View>
-        </Pressable>
-      </Modal>
-    </View>
-  );
-}
 
 export default function SignUpScreen() {
   const [fullName, setFullName] = useState('');

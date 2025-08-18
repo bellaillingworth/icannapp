@@ -17,7 +17,7 @@ export default function SignInScreen() {
     }
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
@@ -27,7 +27,7 @@ export default function SignInScreen() {
       }
       // Navigate to the main app
       router.replace('/(tabs)/explore');
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to sign in');
     }
   };
@@ -73,7 +73,7 @@ export default function SignInScreen() {
           onPress={() => router.replace('/signup')}
         >
           <ThemedText style={styles.switchButtonText}>
-            Don't have an account? Sign Up
+            Don&apos;t have an account? Sign Up
           </ThemedText>
         </Pressable>
       </ScrollView>

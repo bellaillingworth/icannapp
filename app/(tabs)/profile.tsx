@@ -4,8 +4,6 @@ import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Image, Pressable, StyleSheet, TextInput, View, ActivityIndicator, ScrollView, Modal } from 'react-native';
 import { supabase } from '../../supabaseClient';
-import { getCurrentGrade } from './explore';
-import { GradeLevel } from '@/constants/Checklists';
 
 type UserRole = 'Student' | 'Parent/Guardian' | 'Counselor';
 type PostHighSchoolPlan = '2-year college' | '4-year college' | 'Not decided' | 'Apprenticeship' | 'N/A';
@@ -23,9 +21,7 @@ function Dropdown({ label, value, options, onSelect, disabled = false }: { label
   const [isOpen, setIsOpen] = useState(false);
 
   React.useEffect(() => {
-    if (label === 'Grade') {
-      console.log('Dropdown for Grade: disabled =', disabled);
-    }
+    // Grade dropdown disabled state tracking
   }, [disabled, label]);
 
   return (
@@ -238,7 +234,7 @@ export default function ProfileScreen() {
           masterTasksError = result.error;
 
         } else {
-          console.log('Unknown user role:', userData.role);
+  
           progressString = '0/0';
         }
 

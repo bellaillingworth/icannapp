@@ -40,7 +40,7 @@ export default function CareerPlanningScreen() {
             <ThemedView style={styles.step}>
               <ThemedText type="subtitle" style={styles.stepTitle}>Know Your Options</ThemedText>
               <ThemedText style={styles.text}>
-                College isn't just 4 years. You can choose:{'\n'}
+                College isn&apos;t just 4 years. You can choose:{'\n'}
                 • Apprenticeships{'\n'}
                 • Certificates or 2-year degrees{'\n'}
                 • 4-year college{'\n'}
@@ -52,7 +52,7 @@ export default function CareerPlanningScreen() {
               <ThemedText type="subtitle" style={styles.stepTitle}>Budget Smart</ThemedText>
               <ThemedText style={styles.text}>
                 • Learn your starting salary.{'\n'}
-                • Don't borrow more than that.{'\n'}
+                • Don&apos;t borrow more than that.{'\n'}
                 • Plan your education around what you can afford.
               </ThemedText>
             </ThemedView>
