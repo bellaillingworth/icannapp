@@ -551,7 +551,7 @@ export default function ChecklistScreen() {
 
         const newCompletedCount = newDoneStatus ? completedTasks + 1 : completedTasks - 1;
         setCompletedTasks(newCompletedCount);
-        setProgress(totalTasks > 0 ? (newCompletedCount / totalTasks) : 0);
+        setProgress(totalTasks > 0 ? (newCompletedCount / totalTasks) * 100 : 0);
 
         setTasksByMonth(updatedTasksByMonth);
         checkIfAllTasksCompleted(updatedTasksByMonth);
@@ -607,7 +607,7 @@ export default function ChecklistScreen() {
             setTasksByMonth(updatedTasksByMonth);
             const revertedCompletedCount = !newDoneStatus ? completedTasks + 1 : completedTasks - 1;
             setCompletedTasks(revertedCompletedCount);
-            setProgress(totalTasks > 0 ? (revertedCompletedCount / totalTasks) : 0);
+            setProgress(totalTasks > 0 ? (revertedCompletedCount / totalTasks) * 100 : 0);
             Alert.alert('Error', 'Failed to update task: ' + error.message);
         }
     };
@@ -695,7 +695,7 @@ export default function ChecklistScreen() {
                     {`Progress: ${completedTasks}/${totalTasks}`}
                 </ThemedText>
                 <View style={styles.progressBarBackground}>
-                    <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
+                    <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
                 </View>
             </View>
         <FlatList
