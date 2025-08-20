@@ -231,7 +231,7 @@ export default function PreferencesScreen() {
 
       }
 
-      router.push('/(tabs)/explore');
+              router.push('/explore');
 
     } catch (error: any) {
       console.error('Error in handleSavePreferences:', error);

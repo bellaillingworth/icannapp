@@ -26,7 +26,7 @@ export default function SignInScreen() {
         return;
       }
       // Navigate to the main app
-      router.replace('/(tabs)/explore');
+              router.replace('/explore');
     } catch {
       Alert.alert('Error', 'Failed to sign in');
     }

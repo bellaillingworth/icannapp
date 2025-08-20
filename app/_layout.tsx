@@ -9,6 +9,7 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Session } from '@supabase/supabase-js';
 
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
@@ -57,7 +58,7 @@ export default function RootLayout() {
           if (!data || !data.class_of) {
             router.replace('/preferences');
           } else {
-            router.replace('/(tabs)/explore');
+            router.replace('/(tabs)');
         }
         });
       }
