@@ -5,13 +5,13 @@ import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, TextInput, View
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { supabase } from '@/supabaseClient';
-import { GradeLevel, checklists } from '@/constants/Checklists';
+import { GradeLevel } from '@/constants/Checklists';
 
 type UserRole = 'Student' | 'Parent/Guardian' | 'Counselor';
 type GraduationYear = '2026' | '2027' | '2028' | '2029' | 'N/A';
 type PostHighSchoolPlan = '2-year college' | '4-year college' | 'Not decided' | 'Apprenticeship' | 'N/A';
 
-export { checklists };
+
 
 type DropdownProps = {
   label: string;
