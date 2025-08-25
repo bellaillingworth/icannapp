@@ -32,6 +32,30 @@ export default function SignInScreen() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      Alert.alert('Error', 'Please enter your email address first');
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      
+      if (error) {
+        Alert.alert('Error', error.message);
+        return;
+      }
+      
+      Alert.alert(
+        'Password Reset Email Sent',
+        'Check your email for a password reset link. If you don\'t see it, check your spam folder.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      Alert.alert('Error', 'Failed to send password reset email');
+    }
+  };
+
   return (
     <ThemedView style={styles.container}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -66,6 +90,15 @@ export default function SignInScreen() {
 
         <Pressable style={styles.signInButton} onPress={handleSignIn}>
           <ThemedText style={styles.signInButtonText}>Sign In</ThemedText>
+        </Pressable>
+
+        <Pressable 
+          style={styles.forgotPasswordButton}
+          onPress={handleForgotPassword}
+        >
+          <ThemedText style={styles.forgotPasswordText}>
+            Forgot My Password?
+          </ThemedText>
         </Pressable>
 
         <Pressable 
@@ -125,9 +158,18 @@ const styles = StyleSheet.create({
   switchButton: {
     padding: 15,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 0,
   },
   switchButtonText: {
+    color: '#0a7ea4',
+    fontSize: 16,
+  },
+  forgotPasswordButton: {
+    padding: 15,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  forgotPasswordText: {
     color: '#0a7ea4',
     fontSize: 16,
   },

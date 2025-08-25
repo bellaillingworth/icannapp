@@ -7,6 +7,7 @@ import ConfettiCannon from 'react-native-confetti-cannon';
 import { supabase } from '../../supabaseClient';
 import { useFocusEffect } from 'expo-router';
 import { GradeLevel, Task } from '@/constants/Checklists';
+import * as Haptics from 'expo-haptics';
 
 type ChecklistData = {
     [key: string]: Task[]; // key is month name
@@ -265,12 +266,14 @@ export default function ChecklistScreen() {
                         planFilter = { apprenticeship: true };
                         break;
                     case 'Not decided':
-                    case 'N/A':
                         planFilter = { undecided: true };
                         break;
                     default:
                         planFilter = {};
                 }
+
+                console.log('User plan:', profile.post_high_school_plan);
+                console.log('Plan filter:', planFilter);
 
                 // Get master tasks for students
                 const result = await supabase
@@ -278,6 +281,8 @@ export default function ChecklistScreen() {
                     .select('*')
                     .eq('grade', currentGrade)
                     .match(planFilter);
+                
+                console.log('Filtered tasks result:', result.data?.length || 0, 'tasks found');
                 
                 masterTasks = result.data || [];
                 masterTasksError = result.error;
@@ -306,18 +311,22 @@ export default function ChecklistScreen() {
                         planFilter = { apprenticeship: true };
                         break;
                     case 'Not decided':
-                    case 'N/A':
                         planFilter = { undecided: true };
                         break;
                     default:
                         planFilter = {};
                 }
 
+                console.log('Parent/Guardian - User plan:', profile.post_high_school_plan);
+                console.log('Parent/Guardian - Plan filter:', planFilter);
+
                 const result = await supabase
                     .from('checklist_parents')
                     .select('*')
                     .eq('grade', currentGrade)
                     .match(planFilter);
+                
+                console.log('Parent/Guardian - Filtered tasks result:', result.data?.length || 0, 'tasks found');
                 
                 masterTasks = result.data || [];
                 masterTasksError = result.error;
@@ -406,105 +415,11 @@ export default function ChecklistScreen() {
                 // Check if all tasks are completed
                 checkIfAllTasksCompleted(tasksByMonth);
             } else {
-
-                
-                // Fallback: Try to get all tasks for this grade without plan filtering (for students and parents)
-                if (userRole === 'Student' || userRole === 'Parent/Guardian') {
-
-                    let fallbackTasks: any[] = [];
-                    let fallbackError: any = null;
-
-                    if (userRole === 'Student') {
-                        const result = await supabase
-                            .from('checklist_master_tasks')
-                            .select('*')
-                            .eq('grade', currentGrade);
-                        fallbackTasks = result.data || [];
-                        fallbackError = result.error;
-                    } else if (userRole === 'Parent/Guardian') {
-                        const result = await supabase
-                            .from('checklist_parents')
-                            .select('*')
-                            .eq('grade', currentGrade);
-                        fallbackTasks = result.data || [];
-                        fallbackError = result.error;
-                    }
-
-                    if (fallbackError) {
-                        console.error('Fallback query error:', fallbackError);
-                        setTasksByMonth({});
-                        setProgress(0);
-                        setTotalTasks(0);
-                        setCompletedTasks(0);
-                        return;
-                    }
-
-                    if (fallbackTasks && fallbackTasks.length > 0) {
-
-                        
-                        // Get user's completion status for these tasks
-                        const { data: userCompletions, error: completionsError } = await supabase
-                            .from('checklist_items')
-                            .select('master_task_id, is_completed')
-                            .eq('user_id', user.id)
-                            .in('master_task_id', fallbackTasks.map(task => task.id));
-
-                        if (completionsError) throw completionsError;
-
-                        // Create a map of completion status
-                        const completionMap = new Map();
-                        userCompletions?.forEach(item => {
-                            completionMap.set(item.master_task_id, item.is_completed);
-                        });
-
-                        // Group tasks by month using master task data
-                        const tasksByMonth: ChecklistData = {};
-                        
-                        fallbackTasks.forEach(masterTask => {
-                            const month = masterTask.month;
-                            if (!tasksByMonth[month]) {
-                                tasksByMonth[month] = [];
-                            }
-                            
-                            // Check if user has a completion record for this task
-                            const isCompleted = completionMap.has(masterTask.id) 
-                                ? completionMap.get(masterTask.id) 
-                                : false;
-
-                            tasksByMonth[month].push({
-                                id: masterTask.id,
-                                text: masterTask.task_text,
-                                done: isCompleted,
-                            });
-                        });
-
-                        setTasksByMonth(tasksByMonth);
-                        
-                        // Calculate progress
-                        const totalTasks = fallbackTasks.length;
-                        const completedTasks = Array.from(completionMap.values()).filter(Boolean).length;
-                        const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-                        
-                        setProgress(progressPercentage);
-                        setTotalTasks(totalTasks);
-                        setCompletedTasks(completedTasks);
-                        
-                        // Check if all tasks are completed
-                        checkIfAllTasksCompleted(tasksByMonth);
-                    } else {
-        
-                        setTasksByMonth({});
-                        setProgress(0);
-                        setTotalTasks(0);
-                        setCompletedTasks(0);
-                    }
-                } else {
-                    // For counselors and parents, no fallback needed
-                    setTasksByMonth({});
-                    setProgress(0);
-                    setTotalTasks(0);
-                    setCompletedTasks(0);
-                }
+                // No tasks found for the user's plan - show empty checklist
+                setTasksByMonth({});
+                setProgress(0);
+                setTotalTasks(0);
+                setCompletedTasks(0);
             }
         } catch (error: any) {
             console.error('Error fetching checklist progress:', error);
@@ -555,6 +470,15 @@ export default function ChecklistScreen() {
 
         setTasksByMonth(updatedTasksByMonth);
         checkIfAllTasksCompleted(updatedTasksByMonth);
+
+        // Add haptic feedback when task is checked/unchecked
+        if (newDoneStatus) {
+            // Light haptic feedback when checking off a task
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        } else {
+            // Slightly stronger feedback when unchecking a task
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        }
 
         try {
             const { data: { user } } = await supabase.auth.getUser();
